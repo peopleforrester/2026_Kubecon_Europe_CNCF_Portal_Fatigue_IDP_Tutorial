@@ -1,0 +1,30 @@
+# ABOUTME: ArgoCD installation using Kustomize with security-focused patches
+# ABOUTME: Uses ArgoCD v2.11.0 (latest stable as of Oct 2025, NOT v3.0 which is still RC)
+
+apiVersion: kustomize.config.k8s.io/v1beta1
+kind: Kustomization
+
+namespace: argocd
+
+resources:
+  # ArgoCD v2.11.0 - CNCF Graduated project (Dec 2022)
+  # Using specific version for tutorial stability
+  - https://raw.githubusercontent.com/argoproj/argo-cd/v2.11.0/manifests/install.yaml
+
+patchesStrategicMerge:
+  # Customize ArgoCD server for tutorial access
+  - argocd-server-patch.yaml
+  # Configure ArgoCD behavior and settings
+  - argocd-cm-patch.yaml
+
+# Labels for resource tracking
+commonLabels:
+  app.kubernetes.io/part-of: backend-first-idp
+  managed-by: kustomize
+  tutorial: kubecon-eu-2026
+
+# Annotations for documentation
+commonAnnotations:
+  kubecon.tutorial/phase: "1-infrastructure-control-plane"
+  kubecon.tutorial/component: "gitops-orchestration"
+  documentation: "https://github.com/[YOUR-ORG]/backend-first-idp"

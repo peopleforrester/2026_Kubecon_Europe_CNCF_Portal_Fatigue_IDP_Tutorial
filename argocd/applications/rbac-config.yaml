@@ -1,0 +1,89 @@
+# ABOUTME: ArgoCD RBAC configuration for multi-team platform access
+# ABOUTME: Defines platform-admin and developer roles with appropriate permissions
+
+apiVersion: v1
+kind: ConfigMap
+metadata:
+  name: argocd-rbac-cm
+  namespace: argocd
+  labels:
+    app.kubernetes.io/name: argocd-rbac-cm
+    app.kubernetes.io/part-of: argocd
+  annotations:
+    kubecon.tutorial/description: "RBAC configuration for platform teams"
+data:
+  # Default policy: Read-only access
+  policy.default: role:readonly
+
+  # CSV-based policy definition
+  policy.csv: |
+    # ===================================================================
+    # PLATFORM ADMIN ROLE
+    # Full access to all ArgoCD resources
+    # ===================================================================
+    p, role:platform-admin, applications, *, */*, allow
+    p, role:platform-admin, clusters, *, *, allow
+    p, role:platform-admin, repositories, *, *, allow
+    p, role:platform-admin, accounts, *, *, allow
+    p, role:platform-admin, certificates, *, *, allow
+    p, role:platform-admin, gpgkeys, *, *, allow
+    p, role:platform-admin, projects, *, *, allow
+    p, role:platform-admin, applicationsets, *, *, allow
+
+    # ===================================================================
+    # DEVELOPER ROLE
+    # Limited access - can view and sync applications
+    # Cannot delete or modify cluster configuration
+    # ===================================================================
+    p, role:developer, applications, get, */*, allow
+    p, role:developer, applications, sync, */*, allow
+    p, role:developer, applications, override, */*, allow
+    p, role:developer, logs, get, */*, allow
+    p, role:developer, exec, create, */*, deny
+
+    # Developers cannot access clusters or repositories
+    p, role:developer, clusters, get, *, deny
+    p, role:developer, repositories, get, *, deny
+
+    # ===================================================================
+    # ENVIRONMENT-SPECIFIC DEVELOPER ROLES
+    # Developers can only sync apps in their environment
+    # ===================================================================
+
+    # Dev environment developers
+    p, role:developer-dev, applications, get, */*, allow
+    p, role:developer-dev, applications, sync, */dev-*, allow
+    p, role:developer-dev, logs, get, */dev-*, allow
+
+    # Staging environment developers
+    p, role:developer-staging, applications, get, */*, allow
+    p, role:developer-staging, applications, sync, */staging-*, allow
+    p, role:developer-staging, logs, get, */staging-*, allow
+
+    # Production environment - read-only for developers
+    p, role:developer-prod, applications, get, */production-*, allow
+    p, role:developer-prod, applications, sync, */production-*, deny
+
+    # ===================================================================
+    # GROUP BINDINGS
+    # Map OIDC/SSO groups to ArgoCD roles
+    # ===================================================================
+
+    # Platform team gets admin role
+    g, platform-team, role:platform-admin
+    g, sre-team, role:platform-admin
+
+    # Development teams get developer role
+    g, dev-team, role:developer
+    g, dev-team-alpha, role:developer-dev
+    g, dev-team-beta, role:developer-staging
+
+    # ===================================================================
+    # USER BINDINGS (for tutorial/local development)
+    # ===================================================================
+    g, admin, role:platform-admin
+    g, alice, role:developer-dev
+    g, bob, role:developer-staging
+
+  # Scopes for OIDC claims
+  policy.scopes: '[groups, email]'

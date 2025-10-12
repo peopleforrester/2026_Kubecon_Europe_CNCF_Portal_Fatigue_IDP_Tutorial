@@ -1,0 +1,175 @@
+# ABOUTME: Compliance and standards policy - enforce naming, labeling, and documentation requirements
+# ABOUTME: Ensures all infrastructure meets organizational compliance standards
+
+apiVersion: kyverno.io/v1
+kind: ClusterPolicy
+metadata:
+  name: infrastructure-compliance-standards
+  annotations:
+    policies.kyverno.io/title: Infrastructure Compliance Standards
+    policies.kyverno.io/category: Compliance
+    policies.kyverno.io/severity: medium
+    policies.kyverno.io/subject: PostgreSQL, Redis, S3Bucket
+    policies.kyverno.io/description: >-
+      Enforces compliance standards for all infrastructure claims including
+      naming conventions, required labels, and documentation.
+spec:
+  background: false
+  validationFailureAction: enforce
+
+  rules:
+    # Naming Convention
+    - name: validate-naming-convention
+      match:
+        any:
+          - resources:
+              kinds:
+                - PostgreSQL
+                - Redis
+                - S3Bucket
+      validate:
+        message: "Resource names must be lowercase alphanumeric with hyphens only (RFC 1123)"
+        pattern:
+          metadata:
+            name: "^[a-z0-9]([-a-z0-9]*[a-z0-9])?$"
+
+    # Required Labels
+    - name: require-standard-labels
+      match:
+        any:
+          - resources:
+              kinds:
+                - PostgreSQL
+                - Redis
+                - S3Bucket
+      validate:
+        message: "All infrastructure must have 'app' and 'environment' labels for tracking and billing"
+        pattern:
+          metadata:
+            labels:
+              app: "?*"
+              environment: "?*"
+
+    # Production-Specific Requirements
+    - name: production-owner-required
+      match:
+        any:
+          - resources:
+              kinds:
+                - PostgreSQL
+                - Redis
+                - S3Bucket
+              namespaces:
+                - production
+      validate:
+        message: "Production infrastructure must have 'owner' label (email or team identifier)"
+        pattern:
+          metadata:
+            labels:
+              owner: "?*"
+
+    - name: production-description-required
+      match:
+        any:
+          - resources:
+              kinds:
+                - PostgreSQL
+                - Redis
+                - S3Bucket
+              namespaces:
+                - production
+      validate:
+        message: "Production infrastructure must have description annotation"
+        pattern:
+          metadata:
+            annotations:
+              "(description|platform.io/description|kubecon.tutorial/description)": "?*"
+
+    # Inject standard labels
+    - name: inject-standard-labels
+      match:
+        any:
+          - resources:
+              kinds:
+                - PostgreSQL
+                - Redis
+                - S3Bucket
+      mutate:
+        patchStrategicMerge:
+          metadata:
+            labels:
+              # Add platform tracking labels
+              +(platform.io/managed): "true"
+              +(platform.io/version): "v1alpha1"
+
+            annotations:
+              # Add creation timestamp
+              +(platform.io/created-at): "{{ time_now_utc() }}"
+
+    # Environment validation
+    - name: validate-namespace-environment
+      match:
+        any:
+          - resources:
+              kinds:
+                - PostgreSQL
+                - Redis
+                - S3Bucket
+      validate:
+        message: "Environment label must match namespace (dev, staging, or production)"
+        deny:
+          conditions:
+            any:
+              - key: "{{ request.object.metadata.labels.environment }}"
+                operator: NotEquals
+                value: "{{ request.namespace }}"
+
+    # S3 Naming Convention (additional)
+    - name: s3-naming-convention
+      match:
+        any:
+          - resources:
+              kinds:
+                - S3Bucket
+      validate:
+        message: "S3 bucket names must be 3-63 characters, lowercase, no underscores (AWS requirement)"
+        pattern:
+          metadata:
+            name: "^[a-z0-9][a-z0-9-]{1,61}[a-z0-9]$"
+
+    # High Availability Label
+    - name: label-ha-configuration
+      match:
+        any:
+          - resources:
+              kinds:
+                - PostgreSQL
+      preconditions:
+        all:
+          - key: "{{ request.object.spec.parameters.multiAZ }}"
+            operator: Equals
+            value: true
+      mutate:
+        patchStrategicMerge:
+          metadata:
+            labels:
+              +(availability.platform.io/multi-az): "true"
+              +(availability.platform.io/ha): "enabled"
+
+    - name: label-redis-ha
+      match:
+        any:
+          - resources:
+              kinds:
+                - Redis
+      preconditions:
+        all:
+          - key: "{{ request.object.spec.parameters.numNodes }}"
+            operator: GreaterThan
+            value: 1
+      mutate:
+        patchStrategicMerge:
+          metadata:
+            labels:
+              +(availability.platform.io/ha): "enabled"
+              +(availability.platform.io/nodes): "{{ request.object.spec.parameters.numNodes }}"

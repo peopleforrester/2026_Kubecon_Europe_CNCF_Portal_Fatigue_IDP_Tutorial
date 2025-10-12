@@ -1,0 +1,234 @@
+#!/usr/bin/env bash
+# ABOUTME: Platform status command - check resource provisioning status
+# ABOUTME: Shows claim conditions, provisioning progress, and connection readiness
+
+set -euo pipefail
+
+# Colors
+RED='\033[0;31m'
+GREEN='\033[0;32m'
+YELLOW='\033[1;33m'
+BLUE='\033[0;34m'
+CYAN='\033[0;36m'
+PURPLE='\033[0;35m'
+NC='\033[0m'
+
+# Script directory
+SCRIPT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
+
+# Source secure validation functions
+# shellcheck source=./platform-validation.sh
+source "${SCRIPT_DIR}/platform-validation.sh"
+
+usage() {
+    cat << EOF
+Usage: platform status <type> <name> --env=<environment>
+
+Check provisioning status of infrastructure resources.
+
+${CYAN}Arguments:${NC}
+  type                Infrastructure type (postgres, redis, s3bucket)
+  name                Resource name
+  --env=ENV           Environment (dev, staging, production)
+
+${CYAN}Options:${NC}
+  --watch             Watch status updates (refresh every 5s)
+  --json              Output in JSON format
+  --verbose           Show detailed information
+
+${CYAN}Examples:${NC}
+  # Check status
+  platform status postgres my-db --env=dev
+
+  # Watch provisioning progress
+  platform status postgres my-db --env=dev --watch
+
+  # Get detailed status
+  platform status redis my-cache --env=staging --verbose
+
+EOF
+}
+
+# Main
+main() {
+    if [[ $# -lt 3 ]]; then
+        usage
+        exit 1
+    fi
+
+    local type="$1"
+    local name="$2"
+    shift 2
+
+    local env=""
+    local watch="false"
+    local json="false"
+    local verbose="false"
+
+    while [[ $# -gt 0 ]]; do
+        case "$1" in
+            --env=*) env="${1#*=}" ;;
+            --watch) watch="true" ;;
+            --json) json="true" ;;
+            --verbose) verbose="true" ;;
+            -h|--help)
+                usage
+                exit 0
+                ;;
+            *)
+                echo "Unknown option: $1"
+                exit 1
+                ;;
+        esac
+        shift
+    done
+
+    if [[ -z "$env" ]]; then
+        error "Environment is required: --env=dev|staging|production"
+        exit 1
+    fi
+
+    # SECURITY: Validate all user inputs to prevent command injection
+    if ! validate_name "$name"; then
+        exit 1
+    fi
+
+    if ! validate_env "$env"; then
+        exit 1
+    fi
+
+    # Validate type format (alphanumeric and hyphens only)
+    if [[ ! "$type" =~ ^[a-z0-9]([a-z0-9-]*[a-z0-9])?$ ]]; then
+        error "Invalid type: ${type}"
+        exit 1
+    fi
+
+    # Map type to Kind
+    local kind=""
+    case "$type" in
+        postgres|postgresql) kind="PostgreSQL" ;;
+        redis) kind="Redis" ;;
+        s3|s3bucket) kind="S3Bucket" ;;
+        *) error "Unknown type: ${type}"; exit 1 ;;
+    esac
+
+    if [[ "$watch" == "true" ]]; then
+        # Watch mode
+        while true; do
+            clear
+            check_status "$kind" "$name" "$env" "$verbose" "$json"
+            echo ""
+            echo -e "${BLUE}Refreshing in 5 seconds... (Ctrl+C to stop)${NC}"
+            sleep 5
+        done
+    else
+        check_status "$kind" "$name" "$env" "$verbose" "$json"
+    fi
+}
+
+check_status() {
+    local kind="$1"
+    local name="$2"
+    local env="$3"
+    local verbose="$4"
+    local json="$5"
+
+    echo -e "${PURPLE}Status Check: ${kind}/${name} (${env})${NC}"
+    echo ""
+
+    # Check if kubectl is available
+    if ! command -v kubectl &> /dev/null; then
+        echo -e "${YELLOW}⚠${NC} kubectl not found - cannot check cluster status"
+        echo ""
+        echo "To check status manually:"
+        echo "  kubectl get ${kind,,} ${name} -n ${env}"
+        echo "  kubectl describe ${kind,,} ${name} -n ${env}"
+        return
+    fi
+
+    # Check if resource exists
+    if ! kubectl get "${kind,,}" "${name}" -n "${env}" &> /dev/null; then
+        echo -e "${RED}✗${NC} Resource not found: ${kind}/${name} in namespace ${env}"
+        echo ""
+        echo "Possible reasons:"
+        echo "  • Claim not yet created"
+        echo "  • Namespace doesn't exist"
+        echo "  • ArgoCD hasn't synced yet"
+        echo ""
+        echo "Check ArgoCD:"
+        echo "  kubectl get applications -n argocd | grep ${env}"
+        return 1
+    fi
+
+    # Get resource status
+    local ready=$(kubectl get "${kind,,}" "${name}" -n "${env}" -o jsonpath='{.status.conditions[?(@.type=="Ready")].status}' 2>/dev/null || echo "Unknown")
+    local synced=$(kubectl get "${kind,,}" "${name}" -n "${env}" -o jsonpath='{.status.conditions[?(@.type=="Synced")].status}' 2>/dev/null || echo "Unknown")
+
+    # Show status
+    if [[ "$ready" == "True" ]]; then
+        echo -e "${GREEN}✓${NC} Status: ${GREEN}Ready${NC}"
+    elif [[ "$ready" == "False" ]]; then
+        echo -e "${YELLOW}⏳${NC} Status: ${YELLOW}Provisioning${NC}"
+    else
+        echo -e "${BLUE}ℹ${NC} Status: ${BLUE}Unknown${NC}"
+    fi
+
+    if [[ "$synced" == "True" ]]; then
+        echo -e "${GREEN}✓${NC} Synced: ${GREEN}True${NC}"
+    else
+        echo -e "${YELLOW}⏳${NC} Synced: ${YELLOW}Pending${NC}"
+    fi
+
+    # Show conditions
+    echo ""
+    echo -e "${CYAN}Conditions:${NC}"
+    kubectl get "${kind,,}" "${name}" -n "${env}" -o jsonpath='{range .status.conditions[*]}{.type}{"\t"}{.status}{"\t"}{.message}{"\n"}{end}' 2>/dev/null | column -t -s $'\t' | sed 's/^/  /'
+
+    # Check connection secret
+    echo ""
+    echo -e "${CYAN}Connection Secret:${NC}"
+    local secret_name="${name}-connection"
+    if kubectl get secret "${secret_name}" -n "${env}" &> /dev/null; then
+        echo -e "  ${GREEN}✓${NC} Secret exists: ${secret_name}"
+        if [[ "$verbose" == "true" ]]; then
+            echo ""
+            echo -e "${CYAN}Secret Keys:${NC}"
+            kubectl get secret "${secret_name}" -n "${env}" -o jsonpath='{range .data}{@}{"\n"}{end}' 2>/dev/null | jq -r 'keys[]' 2>/dev/null | sed 's/^/    /'
+        fi
+    else
+        echo -e "  ${YELLOW}⏳${NC} Secret pending: ${secret_name}"
+        echo "     (Created when resource is Ready)"
+    fi
+
+    # Show recent events
+    if [[ "$verbose" == "true" ]]; then
+        echo ""
+        echo -e "${CYAN}Recent Events:${NC}"
+        kubectl get events -n "${env}" --sort-by='.lastTimestamp' 2>/dev/null | grep "${name}" | tail -5 | sed 's/^/  /'
+    fi
+
+    # Provisioning estimate
+    if [[ "$ready" != "True" ]]; then
+        echo ""
+        echo -e "${BLUE}ℹ${NC} ${YELLOW}Provisioning typically takes:${NC}"
+        case "$kind" in
+            PostgreSQL) echo "  • RDS PostgreSQL: 5-10 minutes" ;;
+            Redis) echo "  • ElastiCache Redis: 3-8 minutes" ;;
+            S3Bucket) echo "  • S3 Bucket: 30-60 seconds" ;;
+        esac
+        echo ""
+        echo "  Watch progress: platform status ${kind,,} ${name} --env=${env} --watch"
+    fi
+
+    # Next steps
+    if [[ "$ready" == "True" ]]; then
+        echo ""
+        echo -e "${CYAN}Next Steps:${NC}"
+        echo "  • Get connection details: platform connect ${kind,,} ${name} --env=${env}"
+        echo "  • Connect from application using secret: ${secret_name}"
+        echo ""
+        echo -e "${GREEN}✓${NC} Infrastructure is ready to use!"
+    fi
+}
+
+main "$@"

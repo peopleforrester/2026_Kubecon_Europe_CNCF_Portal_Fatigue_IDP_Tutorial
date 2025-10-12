@@ -1,0 +1,103 @@
+# ABOUTME: Production S3 bucket claim - demonstrates full security and compliance configuration
+# ABOUTME: Versioned, encrypted storage with lifecycle policies for cost optimization
+
+apiVersion: platform.io/v1alpha1
+kind: S3Bucket
+metadata:
+  name: app-storage
+  namespace: production
+  labels:
+    app: sample-app
+    environment: production
+    compliance: required
+  annotations:
+    kubecon.tutorial/description: "Production object storage with full security"
+    kubecon.tutorial/owner: "platform-team"
+    kubecon.tutorial/compliance: "SOC2, HIPAA-ready"
+spec:
+  parameters:
+    # Bucket will be auto-generated with unique name
+    # Format: platform-<uid>
+
+    # Enable versioning for data protection
+    versioning: true
+
+    # Encryption at rest (AES256 server-side)
+    encryption: AES256
+
+    # Block all public access (security best practice)
+    blockPublicAccess: true
+
+    # Lifecycle rules for cost optimization
+    lifecycleRules:
+      enabled: true
+
+      # Move to Infrequent Access after 30 days
+      transitionToIA: 30
+
+      # Archive to Glacier after 90 days
+      transitionToGlacier: 90
+
+      # Expire old versions after 365 days
+      expireDays: 365
+
+    # CORS configuration (if needed for web apps)
+    cors:
+      enabled: false  # Enable only if web access required
+      allowedOrigins:
+        - "https://app.example.com"
+      allowedMethods:
+        - GET
+        - HEAD
+        - PUT
+
+    # Access logging (best practice for auditing)
+    accessLogging:
+      enabled: false  # Would require separate log bucket
+      # targetBucket: app-logs-bucket
+
+    # AWS provider
+    provider: aws
+    region: us-west-2
+
+  # Connection secret for applications
+  writeConnectionSecretToRef:
+    name: app-storage-connection
+
+---
+# Example: Application using S3 bucket
+# Shows how to consume the provisioned storage
+
+# apiVersion: apps/v1
+# kind: Deployment
+# metadata:
+#   name: file-processor
+#   namespace: production
+# spec:
+#   template:
+#     spec:
+#       containers:
+#       - name: processor
+#         image: fileprocessor:prod
+#         env:
+#         # S3 bucket configuration from Crossplane
+#         - name: S3_BUCKET
+#           valueFrom:
+#             secretKeyRef:
+#               name: app-storage-connection
+#               key: bucket-name
+#         - name: S3_REGION
+#           valueFrom:
+#             secretKeyRef:
+#               name: app-storage-connection
+#               key: region
+#         - name: S3_ENDPOINT
+#           valueFrom:
+#             secretKeyRef:
+#               name: app-storage-connection
+#               key: endpoint
+#
+#         # AWS credentials (from IAM role or separate secret)
+#         # envFrom:
+#         # - secretRef:
+#         #     name: aws-s3-credentials

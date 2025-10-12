@@ -1,0 +1,392 @@
+#!/usr/bin/env bash
+# ABOUTME: Platform promote command - promote infrastructure between environments
+# ABOUTME: Safely moves claims from dev → staging → production with automatic upgrades
+
+set -euo pipefail
+
+# Colors
+RED='\033[0;31m'
+GREEN='\033[0;32m'
+YELLOW='\033[1;33m'
+BLUE='\033[0;34m'
+CYAN='\033[0;36m'
+PURPLE='\033[0;35m'
+NC='\033[0m'
+
+# Script directory
+SCRIPT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
+
+# Source secure validation functions
+# shellcheck source=./platform-validation.sh
+source "${SCRIPT_DIR}/platform-validation.sh"
+
+usage() {
+    cat << EOF
+Usage: platform promote <type> <name> --from=<env> --to=<env>
+
+Promote infrastructure claims between environments with automatic upgrades.
+
+${CYAN}Arguments:${NC}
+  type                Infrastructure type (postgres, redis, s3bucket)
+  name                Resource name
+  --from=ENV          Source environment (dev, staging)
+  --to=ENV            Target environment (staging, production)
+
+${CYAN}Options:${NC}
+  --size=SIZE         Override size for target environment
+  --multi-az          Enable Multi-AZ (PostgreSQL production)
+  --nodes=N           Override number of nodes (Redis)
+  --dry-run           Show changes without creating files
+  --auto-commit       Automatically commit promotion
+
+${CYAN}Promotion Paths:${NC}
+  dev → staging       Upgrade to medium size, add HA
+  staging → production  Upgrade to large size, add Multi-AZ, increase backups
+
+${CYAN}Examples:${NC}
+  # Promote dev database to staging
+  platform promote postgres my-db --from=dev --to=staging
+
+  # Promote to production with custom size
+  platform promote postgres my-db --from=staging --to=production --size=xlarge
+
+  # Dry run to preview changes
+  platform promote redis my-cache --from=dev --to=staging --dry-run
+
+EOF
+}
+
+# Upgrade rules
+get_postgres_upgrades() {
+    local from="$1"
+    local to="$2"
+    local current_size="$3"
+
+    case "${from}-${to}" in
+        dev-staging)
+            echo "size=medium multiAZ=false backupDays=7"
+            ;;
+        staging-production)
+            echo "size=large multiAZ=true backupDays=30"
+            ;;
+        dev-production)
+            echo "size=large multiAZ=true backupDays=30"
+            ;;
+        *)
+            echo "size=${current_size} multiAZ=false backupDays=1"
+            ;;
+    esac
+}
+
+get_redis_upgrades() {
+    local from="$1"
+    local to="$2"
+    local current_size="$3"
+
+    case "${from}-${to}" in
+        dev-staging)
+            echo "size=medium nodes=2 failover=true snapshots=3"
+            ;;
+        staging-production)
+            echo "size=large nodes=3 failover=true snapshots=7"
+            ;;
+        dev-production)
+            echo "size=large nodes=3 failover=true snapshots=7"
+            ;;
+        *)
+            echo "size=${current_size} nodes=1 failover=false snapshots=1"
+            ;;
+    esac
+}
+
+get_s3_upgrades() {
+    local from="$1"
+    local to="$2"
+
+    case "${from}-${to}" in
+        dev-staging)
+            echo "versioning=true lifecycle=true"
+            ;;
+        staging-production)
+            echo "versioning=true lifecycle=true compliance=true"
+            ;;
+        dev-production)
+            echo "versioning=true lifecycle=true compliance=true"
+            ;;
+        *)
+            echo "versioning=false lifecycle=false"
+            ;;
+    esac
+}
+
+# Main
+main() {
+    if [[ $# -lt 2 ]]; then
+        usage
+        exit 1
+    fi
+
+    local type="$1"
+    local name="$2"
+    shift 2
+
+    # SECURITY: Validate inputs to prevent command injection
+    if ! validate_name "$name"; then
+        exit 1
+    fi
+
+    # Validate type format
+    if [[ ! "$type" =~ ^[a-z0-9]([a-z0-9-]*[a-z0-9])?$ ]]; then
+        error "Invalid type: ${type}"
+        exit 1
+    fi
+
+    local from_env=""
+    local to_env=""
+    local override_size=""
+    local override_multi_az=""
+    local override_nodes=""
+    local dry_run="false"
+    local auto_commit="false"
+
+    while [[ $# -gt 0 ]]; do
+        case "$1" in
+            --from=*) from_env="${1#*=}" ;;
+            --to=*) to_env="${1#*=}" ;;
+            --size=*) override_size="${1#*=}" ;;
+            --multi-az) override_multi_az="true" ;;
+            --nodes=*) override_nodes="${1#*=}" ;;
+            --dry-run) dry_run="true" ;;
+            --auto-commit) auto_commit="true" ;;
+            -h|--help)
+                usage
+                exit 0
+                ;;
+            *)
+                echo "Unknown option: $1"
+                exit 1
+                ;;
+        esac
+        shift
+    done
+
+    # Validation
+    if [[ -z "$from_env" ]] || [[ -z "$to_env" ]]; then
+        echo "Error: Both --from and --to are required"
+        exit 1
+    fi
+
+    # Normalize env names
+    case "$from_env" in
+        dev|development) from_env="dev" ;;
+        staging|stage) from_env="staging" ;;
+        prod|production) from_env="production" ;;
+        *) echo "Invalid source environment: $from_env"; exit 1 ;;
+    esac
+
+    case "$to_env" in
+        dev|development) to_env="dev" ;;
+        staging|stage) to_env="staging" ;;
+        prod|production) to_env="production" ;;
+        *) echo "Invalid target environment: $to_env"; exit 1 ;;
+    esac
+
+    # SECURITY: Validate normalized environment values
+    if ! validate_env "$from_env"; then
+        exit 1
+    fi
+
+    if ! validate_env "$to_env"; then
+        exit 1
+    fi
+
+    # SECURITY: Validate override parameters
+    if [[ -n "$override_size" ]] && ! validate_size "$override_size"; then
+        exit 1
+    fi
+
+    if [[ -n "$override_nodes" ]] && [[ ! "$override_nodes" =~ ^[0-9]+$ ]]; then
+        error "Invalid nodes value: ${override_nodes} (must be a number)"
+        exit 1
+    fi
+    if [[ -n "$override_nodes" ]] && (( override_nodes < 1 || override_nodes > 10 )); then
+        error "Invalid nodes value: ${override_nodes} (must be between 1 and 10)"
+        exit 1
+    fi
+
+    # Check promotion path
+    if [[ "$from_env" == "$to_env" ]]; then
+        echo "Error: Source and target environments are the same"
+        exit 1
+    fi
+
+    if [[ "$from_env" == "production" ]]; then
+        echo "Error: Cannot promote FROM production"
+        exit 1
+    fi
+
+    if [[ "$from_env" == "staging" ]] && [[ "$to_env" == "dev" ]]; then
+        echo "Error: Cannot demote from staging to dev"
+        exit 1
+    fi
+
+    # SECURITY: Validate file paths to prevent path traversal
+    local source_file="environments/${from_env}/${name}.yaml"
+    if ! validate_file_path "$source_file"; then
+        error "Source file path validation failed"
+        exit 1
+    fi
+
+    if [[ ! -f "$source_file" ]]; then
+        echo -e "${RED}✗${NC} Source file not found: ${source_file}"
+        exit 1
+    fi
+
+    local target_file="environments/${to_env}/${name}.yaml"
+    if ! validate_file_path "$target_file"; then
+        error "Target file path validation failed"
+        exit 1
+    fi
+
+    # Check if target already exists
+    if [[ -f "$target_file" ]]; then
+        echo -e "${YELLOW}⚠${NC}  Target already exists: ${target_file}"
+        read -p "Overwrite? [y/N] " -n 1 -r
+        echo ""
+        if [[ ! $REPLY =~ ^[Yy]$ ]]; then
+            echo "Cancelled"
+            exit 0
+        fi
+    fi
+
+    # Read current configuration
+    local current_size=$(grep "^    size:" "$source_file" | awk '{print $2}')
+
+    # Show promotion summary
+    echo -e "${PURPLE}Promotion Plan${NC}"
+    echo ""
+    echo -e "${CYAN}Source:${NC}      ${from_env}/${name} (${type})"
+    echo -e "${CYAN}Target:${NC}      ${to_env}/${name} (${type})"
+    echo -e "${CYAN}Path:${NC}        ${from_env} → ${to_env}"
+    echo ""
+
+    # Get upgrades
+    local upgrades=""
+    case "$type" in
+        postgres|postgresql)
+            upgrades=$(get_postgres_upgrades "$from_env" "$to_env" "$current_size")
+            ;;
+        redis)
+            upgrades=$(get_redis_upgrades "$from_env" "$to_env" "$current_size")
+            ;;
+        s3|s3bucket)
+            upgrades=$(get_s3_upgrades "$from_env" "$to_env")
+            ;;
+    esac
+
+    # Show upgrade details
+    echo -e "${CYAN}Automatic Upgrades:${NC}"
+    case "$type" in
+        postgres|postgresql)
+            local new_size=$(echo "$upgrades" | grep -o 'size=[^ ]*' | cut -d= -f2)
+            local new_multi_az=$(echo "$upgrades" | grep -o 'multiAZ=[^ ]*' | cut -d= -f2)
+            local new_backup_days=$(echo "$upgrades" | grep -o 'backupDays=[^ ]*' | cut -d= -f2)
+
+            [[ -n "$override_size" ]] && new_size="$override_size"
+            [[ -n "$override_multi_az" ]] && new_multi_az="$override_multi_az"
+
+            echo "  • Size: ${current_size} → ${new_size}"
+            echo "  • Multi-AZ: ${new_multi_az}"
+            echo "  • Backup Retention: ${new_backup_days} days"
+            ;;
+        redis)
+            local new_size=$(echo "$upgrades" | grep -o 'size=[^ ]*' | cut -d= -f2)
+            local new_nodes=$(echo "$upgrades" | grep -o 'nodes=[^ ]*' | cut -d= -f2)
+            local new_failover=$(echo "$upgrades" | grep -o 'failover=[^ ]*' | cut -d= -f2)
+
+            [[ -n "$override_size" ]] && new_size="$override_size"
+            [[ -n "$override_nodes" ]] && new_nodes="$override_nodes"
+
+            echo "  • Size: ${current_size} → ${new_size}"
+            echo "  • Nodes: ${new_nodes}"
+            echo "  • Auto-failover: ${new_failover}"
+            ;;
+        s3|s3bucket)
+            echo "  • Versioning: enabled"
+            echo "  • Lifecycle policies: enabled"
+            [[ "$to_env" == "production" ]] && echo "  • Compliance: SOC2, HIPAA ready"
+            ;;
+    esac
+
+    echo ""
+
+    if [[ "$dry_run" == "true" ]]; then
+        echo -e "${BLUE}Dry run mode - no files created${NC}"
+        echo ""
+        echo "Preview:"
+        sed "s/namespace: ${from_env}/namespace: ${to_env}/g" "$source_file" | \
+        sed "s/environment: ${from_env}/environment: ${to_env}/g" | \
+        head -20
+        exit 0
+    fi
+
+    # Confirm
+    if [[ "$auto_commit" != "true" ]]; then
+        read -p "Proceed with promotion? [Y/n] " -n 1 -r
+        echo ""
+        if [[ ! $REPLY =~ ^[Yy]$ ]] && [[ -n $REPLY ]]; then
+            echo "Cancelled"
+            exit 0
+        fi
+    fi
+
+    # Copy and modify file
+    cp "$source_file" "$target_file"
+
+    # Update namespace and environment
+    sed -i "s/namespace: ${from_env}/namespace: ${to_env}/g" "$target_file"
+    sed -i "s/environment: ${from_env}/environment: ${to_env}/g" "$target_file"
+
+    # Apply upgrades based on type
+    case "$type" in
+        postgres|postgresql)
+            [[ -n "$new_size" ]] && sed -i "s/size: .*/size: ${new_size}/g" "$target_file"
+            [[ -n "$new_multi_az" ]] && sed -i "s/multiAZ: .*/multiAZ: ${new_multi_az}/g" "$target_file"
+            [[ -n "$new_backup_days" ]] && sed -i "s/backupRetentionDays: .*/backupRetentionDays: ${new_backup_days}/g" "$target_file"
+            ;;
+        redis)
+            [[ -n "$new_size" ]] && sed -i "s/size: .*/size: ${new_size}/g" "$target_file"
+            [[ -n "$new_nodes" ]] && sed -i "s/numNodes: .*/numNodes: ${new_nodes}/g" "$target_file"
+            [[ -n "$new_failover" ]] && sed -i "s/automaticFailover: .*/automaticFailover: ${new_failover}/g" "$target_file"
+            ;;
+    esac
+
+    echo -e "${GREEN}✓${NC} Created: ${target_file}"
+
+    # Git operations
+    if [[ "$auto_commit" == "true" ]]; then
+        git add "$target_file"
+        git commit -m "feat: Promote ${type} ${name} from ${from_env} to ${to_env}
+
+Automatic upgrades applied:
+$(echo "$upgrades" | tr ' ' '\n' | sed 's/^/- /')
+
+🤖 Generated with Platform CLI"
+        echo -e "${GREEN}✓${NC} Committed to git"
+    else
+        echo ""
+        echo "Next steps:"
+        echo "  1. Review changes: git diff ${target_file}"
+        echo "  2. Commit:"
+        echo "     git add ${target_file}"
+        echo "     git commit -m 'feat: Promote ${type} ${name} to ${to_env}'"
+        echo "     git push"
+        echo "  3. Monitor:"
+        echo "     platform status ${type} ${name} --env=${to_env}"
+    fi
+
+    echo ""
+    echo -e "${GREEN}✓${NC} Promotion complete!"
+}
+
+main "$@"

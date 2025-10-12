@@ -1,0 +1,92 @@
+# ABOUTME: Dev environment PostgreSQL database claim - developer-facing interface
+# ABOUTME: Simple YAML request that triggers full RDS provisioning via Crossplane
+
+apiVersion: platform.io/v1alpha1
+kind: PostgreSQL
+metadata:
+  name: app-database
+  namespace: dev
+  labels:
+    app: sample-app
+    environment: dev
+  annotations:
+    kubecon.tutorial/description: "Development database for sample application"
+    kubecon.tutorial/owner: "dev-team"
+spec:
+  # Simple parameters - developers don't need to know about AWS specifics
+  parameters:
+    # Small instance for development (maps to db.t3.micro)
+    size: small
+
+    # Minimal storage for dev
+    storageGB: 20
+
+    # Latest PostgreSQL version
+    engineVersion: "15.3"
+
+    # Network configuration (optional - uses defaults if not specified)
+    networkConfig:
+      # Keep database private
+      publiclyAccessible: false
+
+      # Allow access from private subnets
+      allowedCIDRs:
+        - "10.0.0.0/8"
+
+    # Minimal backup retention for dev
+    backupRetentionDays: 1
+
+    # No multi-AZ for dev (cost optimization)
+    multiAZ: false
+
+    # AWS provider (could be 'gcp' or 'azure')
+    provider: aws
+    region: us-west-2
+
+  # Connection secret will be created with this name
+  # Applications can reference this secret to connect
+  writeConnectionSecretToRef:
+    name: app-database-connection
+
+---
+# Example: How an application would use the connection secret
+# This is just for reference - shows the end-to-end flow
+
+# apiVersion: apps/v1
+# kind: Deployment
+# metadata:
+#   name: sample-app
+#   namespace: dev
+# spec:
+#   template:
+#     spec:
+#       containers:
+#       - name: app
+#         image: myapp:latest
+#         env:
+#         # Database connection from Crossplane-provisioned secret
+#         - name: DB_HOST
+#           valueFrom:
+#             secretKeyRef:
+#               name: app-database-connection
+#               key: endpoint
+#         - name: DB_PORT
+#           valueFrom:
+#             secretKeyRef:
+#               name: app-database-connection
+#               key: port
+#         - name: DB_USER
+#           valueFrom:
+#             secretKeyRef:
+#               name: app-database-connection
+#               key: username
+#         - name: DB_PASSWORD
+#           valueFrom:
+#             secretKeyRef:
+#               name: app-database-connection
+#               key: password
+#         - name: DB_NAME
+#           valueFrom:
+#             secretKeyRef:
+#               name: app-database-connection
+#               key: database

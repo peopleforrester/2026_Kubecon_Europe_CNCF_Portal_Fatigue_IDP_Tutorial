@@ -1,0 +1,265 @@
+#!/usr/bin/env bash
+# ABOUTME: Platform list command - discover available infrastructure types
+# ABOUTME: Shows XRDs with descriptions, parameters, and examples
+
+set -euo pipefail
+
+# Colors
+GREEN='\033[0;32m'
+BLUE='\033[0;34m'
+CYAN='\033[0;36m'
+PURPLE='\033[0;35m'
+YELLOW='\033[1;33m'
+RED='\033[0;31m'
+NC='\033[0m'
+
+# Script directory
+SCRIPT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
+PROJECT_ROOT="$(cd "${SCRIPT_DIR}/.." && pwd)"
+
+# Source secure validation functions
+# shellcheck source=./platform-validation.sh
+source "${SCRIPT_DIR}/platform-validation.sh"
+
+usage() {
+    cat << EOF
+Usage: platform list [type]
+
+List available infrastructure types and their parameters.
+
+${CYAN}Examples:${NC}
+  platform list              # List all types
+  platform list postgres     # Show PostgreSQL details
+  platform list redis        # Show Redis details
+
+${CYAN}Available Types:${NC}
+  postgres    PostgreSQL database
+  redis       Redis cache
+  s3bucket    S3 object storage
+
+EOF
+}
+
+# Infrastructure catalog
+list_all() {
+    cat << EOF
+${PURPLE}Available Infrastructure Types:${NC}
+
+${GREEN}postgres${NC} - PostgreSQL Database
+  ${CYAN}Description:${NC} Managed PostgreSQL database with automated backups
+  ${CYAN}Versions:${NC} 14.x, 15.x, 16.x
+  ${CYAN}Sizes:${NC} small, medium, large
+  ${CYAN}Features:${NC} Multi-AZ, automated backups, encryption, read replicas
+  ${CYAN}Example:${NC} platform create postgres my-db --size=small --env=dev
+
+${GREEN}redis${NC} - Redis Cache
+  ${CYAN}Description:${NC} In-memory data store with persistence options
+  ${CYAN}Versions:${NC} 6.2, 7.0
+  ${CYAN}Sizes:${NC} small, medium, large
+  ${CYAN}Features:${NC} Cluster mode, automatic failover, encryption, snapshots
+  ${CYAN}Example:${NC} platform create redis my-cache --size=medium --env=staging
+
+${GREEN}s3bucket${NC} - S3 Object Storage
+  ${CYAN}Description:${NC} Scalable object storage with lifecycle policies
+  ${CYAN}Features:${NC} Versioning, encryption, lifecycle rules, CORS, public access blocking
+  ${CYAN}Example:${NC} platform create s3bucket my-storage --env=production
+
+${GREEN}mysql${NC} - MySQL Database ${YELLOW}(Coming Soon)${NC}
+  ${CYAN}Description:${NC} Managed MySQL database
+  ${CYAN}Versions:${NC} 8.0
+  ${CYAN}Sizes:${NC} small, medium, large
+
+${YELLOW}Tip:${NC} Use 'platform list <type>' for detailed information
+${YELLOW}Tip:${NC} Use 'platform cost <type>' to estimate costs
+
+EOF
+}
+
+# PostgreSQL details
+list_postgres() {
+    cat << EOF
+${PURPLE}PostgreSQL Database${NC}
+
+${CYAN}API:${NC} platform.io/v1alpha1/PostgreSQL
+
+${CYAN}Parameters:${NC}
+  ${GREEN}size${NC}               Instance size (required)
+                      • small  - db.t3.micro  (~$15/month)
+                      • medium - db.t3.small  (~$30/month)
+                      • large  - db.t3.medium (~$60/month)
+
+  ${GREEN}engineVersion${NC}      PostgreSQL version (default: 15.3)
+                      • 14.x, 15.x, 16.x
+
+  ${GREEN}storageGB${NC}          Storage in GB (default: 20)
+                      • Min: 20, Max: 65536
+                      • Autoscaling available
+
+  ${GREEN}multiAZ${NC}            High availability (default: false)
+                      • true  - Multi-AZ deployment
+                      • false - Single AZ (dev/staging)
+
+  ${GREEN}backupRetentionDays${NC} Backup retention (default: 7)
+                      • Min: 1, Max: 35 days
+
+  ${GREEN}publiclyAccessible${NC} Public access (default: false)
+                      • true  - Internet accessible
+                      • false - VPC only (recommended)
+
+${CYAN}Network Configuration:${NC}
+  ${GREEN}allowedCIDRs${NC}      IP ranges allowed to connect
+                      • Default: ["10.0.0.0/8"]
+
+${CYAN}Example:${NC}
+  platform create postgres my-db \\
+    --size=medium \\
+    --storage=50 \\
+    --multi-az \\
+    --version=15.3 \\
+    --env=production
+
+${CYAN}Connection Secret:${NC}
+  Keys: endpoint, port, username, password, database
+
+${CYAN}Cost Estimate:${NC}
+  platform cost postgres --size=medium --multi-az
+
+EOF
+}
+
+# Redis details
+list_redis() {
+    cat << EOF
+${PURPLE}Redis Cache${NC}
+
+${CYAN}API:${NC} platform.io/v1alpha1/Redis
+
+${CYAN}Parameters:${NC}
+  ${GREEN}size${NC}                    Instance size (required)
+                           • small  - cache.t3.micro (~$10/month)
+                           • medium - cache.t3.small (~$25/month)
+                           • large  - cache.t3.medium (~$50/month)
+
+  ${GREEN}engineVersion${NC}           Redis version (default: 7.0)
+                           • 6.2, 7.0
+
+  ${GREEN}numNodes${NC}               Number of nodes (default: 1)
+                           • 1 - Single node
+                           • 2+ - Cluster with replicas
+
+  ${GREEN}automaticFailover${NC}      HA failover (default: false)
+                           • true - Automatic failover (requires 2+ nodes)
+                           • false - Manual failover
+
+  ${GREEN}transitEncryption${NC}      Encryption in transit (default: true)
+  ${GREEN}atRestEncryption${NC}       Encryption at rest (default: true)
+  ${GREEN}authTokenEnabled${NC}       Authentication (default: true)
+
+  ${GREEN}snapshotRetentionDays${NC}  Snapshot retention (default: 7)
+                           • 0 - No snapshots
+                           • 1-35 - Daily snapshots
+
+${CYAN}Example:${NC}
+  platform create redis my-cache \\
+    --size=medium \\
+    --nodes=2 \\
+    --auto-failover \\
+    --env=staging
+
+${CYAN}Connection Secret:${NC}
+  Keys: endpoint, port, auth-token
+
+${CYAN}Cost Estimate:${NC}
+  platform cost redis --size=medium --nodes=2
+
+EOF
+}
+
+# S3 Bucket details
+list_s3bucket() {
+    cat << EOF
+${PURPLE}S3 Object Storage${NC}
+
+${CYAN}API:${NC} platform.io/v1alpha1/S3Bucket
+
+${CYAN}Parameters:${NC}
+  ${GREEN}versioning${NC}           Enable versioning (default: true)
+                          • true - Object versioning enabled
+                          • false - No versioning
+
+  ${GREEN}encryption${NC}           Encryption type (default: AES256)
+                          • AES256 - Server-side encryption
+                          • aws:kms - KMS encryption
+
+  ${GREEN}blockPublicAccess${NC}    Block public access (default: true)
+                          • true - No public access (recommended)
+                          • false - Allow public access
+
+  ${GREEN}lifecycleRules${NC}       Lifecycle management
+    ${GREEN}enabled${NC}             Enable lifecycle rules
+    ${GREEN}transitionToIA${NC}     Days until Infrequent Access (default: 30)
+    ${GREEN}transitionToGlacier${NC} Days until Glacier (default: 90)
+    ${GREEN}expireDays${NC}         Days until expiration (default: 365)
+
+  ${GREEN}cors${NC}                 CORS configuration
+    ${GREEN}enabled${NC}             Enable CORS
+    ${GREEN}allowedOrigins${NC}     Allowed origins
+    ${GREEN}allowedMethods${NC}     Allowed HTTP methods
+
+${CYAN}Example:${NC}
+  platform create s3bucket my-storage \\
+    --versioning \\
+    --lifecycle \\
+    --env=production
+
+${CYAN}Connection Secret:${NC}
+  Keys: bucket-name, region, endpoint
+
+${CYAN}Cost Estimate:${NC}
+  Storage: $0.023/GB/month
+  Requests: $0.0004/1000 GET requests
+  Typical: $1-10/month for small apps
+
+EOF
+}
+
+# Main
+main() {
+    if [[ $# -eq 0 ]]; then
+        list_all
+        exit 0
+    fi
+
+    # SECURITY: Validate type argument to prevent injection
+    local type="${1:-}"
+
+    # Validate format (alphanumeric and hyphens only)
+    if [[ ! "$type" =~ ^[a-z0-9]([a-z0-9-]*[a-z0-9])?$ ]] && [[ "$type" != "-h" ]] && [[ "$type" != "--help" ]]; then
+        error "Invalid type argument: ${type}"
+        echo "Type must contain only lowercase letters, numbers, and hyphens" >&2
+        exit 1
+    fi
+
+    case "$type" in
+        -h|--help)
+            usage
+            exit 0
+            ;;
+        postgres|postgresql)
+            list_postgres
+            ;;
+        redis)
+            list_redis
+            ;;
+        s3|s3bucket)
+            list_s3bucket
+            ;;
+        *)
+            error "Unknown type: ${type}"
+            echo "Run 'platform list' to see all available types"
+            exit 1
+            ;;
+    esac
+}
+
+main "$@"

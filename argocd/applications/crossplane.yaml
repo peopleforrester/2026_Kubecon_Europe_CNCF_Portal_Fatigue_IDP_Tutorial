@@ -1,0 +1,57 @@
+# ABOUTME: ArgoCD Application for Crossplane infrastructure provisioning system
+# ABOUTME: Deploys Crossplane as the infrastructure control plane component
+
+apiVersion: argoproj.io/v1alpha1
+kind: Application
+metadata:
+  name: crossplane-system
+  namespace: argocd
+  annotations:
+    argocd.argoproj.io/sync-wave: "1"
+    kubecon.tutorial/description: "Crossplane infrastructure provisioning control plane"
+  finalizers:
+    - resources-finalizer.argocd.argoproj.io
+spec:
+  project: default
+
+  # Source: Crossplane installation manifests
+  source:
+    repoURL: https://github.com/[YOUR-ORG]/backend-first-idp
+    targetRevision: main
+    path: crossplane/install
+
+  # Destination: Dedicated Crossplane namespace
+  destination:
+    server: https://kubernetes.default.svc
+    namespace: crossplane-system
+
+  # Sync policy: Automated deployment
+  syncPolicy:
+    automated:
+      prune: true
+      selfHeal: true
+      allowEmpty: false
+
+    syncOptions:
+      - CreateNamespace=true
+      - ServerSideApply=true  # Required for CRDs
+      - RespectIgnoreDifferences=true
+
+    # Retry policy for CRD installation
+    retry:
+      limit: 3
+      backoff:
+        duration: 10s
+        factor: 2
+        maxDuration: 5m
+
+  # Health assessment
+  # Wait for Crossplane deployment to be ready
+  syncWaveHook: Skip
+
+  ignoreDifferences:
+    - group: apiextensions.k8s.io
+      kind: CustomResourceDefinition
+      jsonPointers:
+        - /spec/conversion/webhook/clientConfig/caBundle
+        - /metadata/annotations

@@ -1,0 +1,70 @@
+# ABOUTME: App-of-Apps pattern - root application that manages all platform components
+# ABOUTME: This bootstraps the entire backend-first IDP using GitOps
+
+apiVersion: argoproj.io/v1alpha1
+kind: Application
+metadata:
+  name: platform-apps
+  namespace: argocd
+  # Finalizer ensures proper cleanup
+  finalizers:
+    - resources-finalizer.argocd.argoproj.io
+  annotations:
+    argocd.argoproj.io/sync-wave: "0"
+    kubecon.tutorial/description: "Root application managing all platform components"
+spec:
+  # Default project for tutorial simplicity
+  # For production, use dedicated AppProjects with RBAC
+  project: default
+
+  # Source: This repository
+  source:
+    repoURL: https://github.com/[YOUR-ORG]/backend-first-idp
+    targetRevision: main
+    path: argocd/applications
+    directory:
+      recurse: false
+      include: '*.yaml'
+      exclude: 'platform-apps.yaml'  # Avoid self-reference
+
+  # Destination: ArgoCD namespace manages platform apps
+  destination:
+    server: https://kubernetes.default.svc
+    namespace: argocd
+
+  # Sync policy: Automated for tutorial
+  syncPolicy:
+    automated:
+      # Prune resources when removed from Git
+      prune: true
+      # Self-heal when cluster state drifts
+      selfHeal: true
+      # Allow empty directories
+      allowEmpty: false
+
+    syncOptions:
+      # Create namespace if it doesn't exist
+      - CreateNamespace=true
+      # Respect ignore differences
+      - RespectIgnoreDifferences=true
+      # Preserve resource versions
+      - PrunePropagationPolicy=foreground
+      # Apply out of sync only
+      - ApplyOutOfSyncOnly=true
+
+    # Retry policy for transient failures
+    retry:
+      limit: 5
+      backoff:
+        duration: 5s
+        factor: 2
+        maxDuration: 3m
+
+  # Ignore differences in metadata managed by controllers
+  ignoreDifferences:
+    - group: "*"
+      kind: "*"
+      jsonPointers:
+        - /metadata/resourceVersion
+        - /metadata/generation
+        - /metadata/managedFields

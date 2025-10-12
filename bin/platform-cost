@@ -1,0 +1,361 @@
+#!/usr/bin/env bash
+# ABOUTME: Platform cost command - estimate infrastructure costs
+# ABOUTME: Provides detailed cost breakdowns and comparisons
+
+set -euo pipefail
+
+# Colors
+GREEN='\033[0;32m'
+YELLOW='\033[1;33m'
+BLUE='\033[0;34m'
+CYAN='\033[0;36m'
+PURPLE='\033[0;35m'
+NC='\033[0m'
+
+# Script directory
+SCRIPT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
+
+# Source secure validation functions
+# shellcheck source=./platform-validation.sh
+source "${SCRIPT_DIR}/platform-validation.sh"
+
+usage() {
+    cat << EOF
+Usage: platform cost <type> [options]
+
+Estimate monthly costs for infrastructure.
+
+${CYAN}Options:${NC}
+  --size=SIZE         Instance size (small, medium, large)
+  --multi-az          Include Multi-AZ costs (PostgreSQL)
+  --nodes=N           Number of nodes (Redis)
+  --storage=GB        Storage amount in GB (PostgreSQL)
+  --compare           Show cost comparison across sizes
+
+${CYAN}Examples:${NC}
+  # Estimate PostgreSQL costs
+  platform cost postgres --size=medium
+
+  # Estimate with Multi-AZ
+  platform cost postgres --size=large --multi-az
+
+  # Compare Redis sizes
+  platform cost redis --compare
+
+  # Estimate with storage
+  platform cost postgres --size=medium --storage=100
+
+EOF
+}
+
+# Cost table for PostgreSQL
+cost_postgres() {
+    local size="${1:-}"
+    local multi_az="${2:-false}"
+    local storage="${3:-20}"
+    local compare="${4:-false}"
+
+    if [[ "$compare" == "true" ]]; then
+        cat << EOF
+${PURPLE}PostgreSQL Cost Comparison${NC}
+
+${CYAN}Single-AZ Instances:${NC}
+┌─────────┬──────────────┬────────────────┬─────────────────┐
+│ Size    │ Instance     │ Monthly Cost   │ Best For        │
+├─────────┼──────────────┼────────────────┼─────────────────┤
+│ small   │ db.t3.micro  │ ~\$15/month    │ Dev/Test        │
+│ medium  │ db.t3.small  │ ~\$30/month    │ Staging         │
+│ large   │ db.t3.medium │ ~\$60/month    │ Small Prod      │
+└─────────┴──────────────┴────────────────┴─────────────────┘
+
+${CYAN}Multi-AZ Instances (2x cost):${NC}
+┌─────────┬──────────────┬────────────────┬─────────────────┐
+│ Size    │ Instance     │ Monthly Cost   │ Best For        │
+├─────────┼──────────────┼────────────────┼─────────────────┤
+│ small   │ db.t3.micro  │ ~\$30/month    │ Critical Dev    │
+│ medium  │ db.t3.small  │ ~\$60/month    │ Production      │
+│ large   │ db.t3.medium │ ~\$120/month   │ High-Avail Prod │
+└─────────┴──────────────┴────────────────┴─────────────────┘
+
+${CYAN}Additional Costs:${NC}
+• Storage: \$0.115/GB/month (first 20GB included)
+• Backups: Included (automated daily)
+• Data Transfer: \$0.09/GB outbound
+
+EOF
+        return
+    fi
+
+    local instance_cost=0
+    local instance_type=""
+
+    case "$size" in
+        small)
+            instance_cost=15
+            instance_type="db.t3.micro"
+            ;;
+        medium)
+            instance_cost=30
+            instance_type="db.t3.small"
+            ;;
+        large)
+            instance_cost=60
+            instance_type="db.t3.medium"
+            ;;
+        *)
+            echo "Invalid size. Use: small, medium, large"
+            exit 1
+            ;;
+    esac
+
+    if [[ "$multi_az" == "true" ]]; then
+        instance_cost=$((instance_cost * 2))
+    fi
+
+    local storage_cost=0
+    if [[ $storage -gt 20 ]]; then
+        storage_cost=$(echo "scale=2; ($storage - 20) * 0.115" | bc)
+    fi
+
+    local total_cost=$(echo "scale=2; $instance_cost + $storage_cost" | bc)
+
+    cat << EOF
+${PURPLE}PostgreSQL Cost Estimate${NC}
+
+${CYAN}Configuration:${NC}
+  Instance:    ${instance_type}
+  Multi-AZ:    ${multi_az}
+  Storage:     ${storage} GB
+
+${CYAN}Cost Breakdown:${NC}
+  Instance:    \$${instance_cost}/month
+  Storage:     \$${storage_cost}/month ($([ $storage -le 20 ] && echo "first 20GB included" || echo "$(($storage - 20))GB extra"))
+  ────────────────────────────
+  ${GREEN}Total:       ~\$${total_cost}/month${NC}
+
+${CYAN}Annual:${NC}      ~\$$(echo "scale=2; $total_cost * 12" | bc)/year
+
+${YELLOW}Optimization Tips:${NC}
+• Use 'small' size in dev environments
+• Enable Multi-AZ only for production
+• Set up lifecycle policies for automated backups
+• Consider Reserved Instances for 30-40% savings
+
+EOF
+}
+
+# Cost table for Redis
+cost_redis() {
+    local size="${1:-}"
+    local nodes="${2:-1}"
+    local compare="${3:-false}"
+
+    if [[ "$compare" == "true" ]]; then
+        cat << EOF
+${PURPLE}Redis Cost Comparison${NC}
+
+${CYAN}Single Node:${NC}
+┌─────────┬──────────────────┬────────────────┬─────────────────┐
+│ Size    │ Instance         │ Monthly Cost   │ Best For        │
+├─────────┼──────────────────┼────────────────┼─────────────────┤
+│ small   │ cache.t3.micro   │ ~\$10/month    │ Dev/Test        │
+│ medium  │ cache.t3.small   │ ~\$25/month    │ Staging         │
+│ large   │ cache.t3.medium  │ ~\$50/month    │ Production      │
+└─────────┴──────────────────┴────────────────┴─────────────────┘
+
+${CYAN}High Availability (2+ nodes):${NC}
+┌─────────┬───────┬────────────────┬─────────────────────────┐
+│ Size    │ Nodes │ Monthly Cost   │ Configuration           │
+├─────────┼───────┼────────────────┼─────────────────────────┤
+│ small   │ 2     │ ~\$20/month    │ Dev HA                  │
+│ medium  │ 2     │ ~\$50/month    │ Staging/Prod            │
+│ medium  │ 3     │ ~\$75/month    │ Prod + Read Replicas    │
+│ large   │ 2     │ ~\$100/month   │ High-Traffic Prod       │
+└─────────┴───────┴────────────────┴─────────────────────────┘
+
+${CYAN}Additional Costs:${NC}
+• Snapshots: \$0.085/GB/month
+• Data Transfer: \$0.09/GB outbound
+• Encryption: Included (no extra cost)
+
+EOF
+        return
+    fi
+
+    local per_node_cost=0
+    local instance_type=""
+
+    case "$size" in
+        small)
+            per_node_cost=10
+            instance_type="cache.t3.micro"
+            ;;
+        medium)
+            per_node_cost=25
+            instance_type="cache.t3.small"
+            ;;
+        large)
+            per_node_cost=50
+            instance_type="cache.t3.medium"
+            ;;
+        *)
+            echo "Invalid size. Use: small, medium, large"
+            exit 1
+            ;;
+    esac
+
+    local total_cost=$((per_node_cost * nodes))
+
+    cat << EOF
+${PURPLE}Redis Cost Estimate${NC}
+
+${CYAN}Configuration:${NC}
+  Instance:    ${instance_type}
+  Nodes:       ${nodes}
+  Failover:    $([ $nodes -gt 1 ] && echo "Enabled (HA)" || echo "Disabled")
+
+${CYAN}Cost Breakdown:${NC}
+  Per Node:    \$${per_node_cost}/month
+  Nodes:       ${nodes} × \$${per_node_cost}
+  ────────────────────────────
+  ${GREEN}Total:       ~\$${total_cost}/month${NC}
+
+${CYAN}Annual:${NC}      ~\$$(echo "scale=2; $total_cost * 12" | bc)/year
+
+${YELLOW}Optimization Tips:${NC}
+• Use single node in dev (${nodes} → 1 saves \$$(( (nodes - 1) * per_node_cost ))/month)
+• Enable automatic failover only in staging/prod
+• Use smaller instances with more nodes for better HA
+• Consider Reserved Nodes for 30% savings
+
+EOF
+}
+
+# Cost table for S3
+cost_s3bucket() {
+    cat << EOF
+${PURPLE}S3 Object Storage Cost Estimate${NC}
+
+${CYAN}Pricing Model:${NC} Pay-as-you-go (usage-based)
+
+${CYAN}Storage Costs:${NC}
+  Standard:            \$0.023/GB/month
+  Infrequent Access:   \$0.0125/GB/month (after 30 days)
+  Glacier:             \$0.004/GB/month (after 90 days)
+
+${CYAN}Request Costs:${NC}
+  PUT/POST:            \$0.005 per 1,000 requests
+  GET/SELECT:          \$0.0004 per 1,000 requests
+
+${CYAN}Data Transfer:${NC}
+  Inbound:             Free
+  Outbound (first 1GB): Free
+  Outbound (next 9.99TB): \$0.09/GB
+
+${CYAN}Typical Monthly Costs:${NC}
+┌──────────────────┬────────────────┬─────────────────┐
+│ Usage            │ Storage        │ Est. Cost       │
+├──────────────────┼────────────────┼─────────────────┤
+│ Small app        │ 10 GB          │ ~\$1/month      │
+│ Medium app       │ 100 GB         │ ~\$3/month      │
+│ Large app        │ 1 TB           │ ~\$25/month     │
+│ With lifecycle   │ 1 TB → Glacier │ ~\$8/month      │
+└──────────────────┴────────────────┴─────────────────┘
+
+${CYAN}Lifecycle Optimization:${NC}
+  Days 0-30:    Standard Storage    \$23/TB/month
+  Days 31-90:   Infrequent Access   \$12.50/TB/month
+  Days 90+:     Glacier             \$4/TB/month
+
+  ${GREEN}Average with lifecycle: ~\$8/TB/month (65% savings)${NC}
+
+${YELLOW}Optimization Tips:${NC}
+• Enable lifecycle policies (automatic cost reduction)
+• Use Intelligent-Tiering for unpredictable access patterns
+• Enable versioning only when needed
+• Set up expiration rules for temporary data
+• Use CloudFront for high-traffic public content
+
+EOF
+}
+
+# Main
+main() {
+    if [[ $# -eq 0 ]]; then
+        usage
+        exit 1
+    fi
+
+    local type="$1"
+    shift
+
+    # SECURITY: Validate type format to prevent command injection
+    if [[ ! "$type" =~ ^[a-z0-9]([a-z0-9-]*[a-z0-9])?$ ]]; then
+        error "Invalid type: ${type}"
+        exit 1
+    fi
+
+    local size="medium"
+    local multi_az="false"
+    local nodes="1"
+    local storage="20"
+    local compare="false"
+
+    while [[ $# -gt 0 ]]; do
+        case "$1" in
+            --size=*) size="${1#*=}" ;;
+            --multi-az) multi_az="true" ;;
+            --nodes=*) nodes="${1#*=}" ;;
+            --storage=*) storage="${1#*=}" ;;
+            --compare) compare="true" ;;
+            -h|--help)
+                usage
+                exit 0
+                ;;
+            *)
+                echo "Unknown option: $1"
+                exit 1
+                ;;
+        esac
+        shift
+    done
+
+    # SECURITY: Validate size parameter
+    if [[ -n "$size" ]] && ! validate_size "$size"; then
+        exit 1
+    fi
+
+    # SECURITY: Validate storage parameter (must be integer)
+    if [[ -n "$storage" ]] && ! validate_storage "$storage"; then
+        exit 1
+    fi
+
+    # SECURITY: Validate nodes parameter (must be integer 1-10)
+    if [[ -n "$nodes" ]] && [[ ! "$nodes" =~ ^[0-9]+$ ]]; then
+        error "Invalid nodes value: ${nodes} (must be a number)"
+        exit 1
+    fi
+    if [[ -n "$nodes" ]] && (( nodes < 1 || nodes > 10 )); then
+        error "Invalid nodes value: ${nodes} (must be between 1 and 10)"
+        exit 1
+    fi
+
+    case "$type" in
+        postgres|postgresql)
+            cost_postgres "$size" "$multi_az" "$storage" "$compare"
+            ;;
+        redis)
+            cost_redis "$size" "$nodes" "$compare"
+            ;;
+        s3|s3bucket)
+            cost_s3bucket
+            ;;
+        *)
+            echo "Unknown type: ${type}"
+            echo "Supported types: postgres, redis, s3bucket"
+            exit 1
+            ;;
+    esac
+}
+
+main "$@"

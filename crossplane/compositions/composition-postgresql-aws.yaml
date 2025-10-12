@@ -1,0 +1,231 @@
+# ABOUTME: PostgreSQL Composition for AWS RDS - converts abstract request to actual AWS resources
+# ABOUTME: Creates RDS instance, subnet group, security group, and parameter group
+
+apiVersion: apiextensions.crossplane.io/v1
+kind: Composition
+metadata:
+  name: xpostgresql.aws.platform.io
+  labels:
+    provider: aws
+    service: rds
+    database: postgresql
+  annotations:
+    kubecon.tutorial/description: "AWS RDS PostgreSQL composition"
+    kubecon.tutorial/cost-warning: "Creates billable AWS resources"
+spec:
+  # Links to the XRD
+  compositeTypeRef:
+    apiVersion: platform.io/v1alpha1
+    kind: XPostgreSQL
+
+  # Mode: Resources or Pipeline (we use Resources for simplicity)
+  mode: Resources
+
+  # Resources to create
+  resources:
+    # DB Subnet Group - defines where RDS can run
+    - name: db-subnet-group
+      base:
+        apiVersion: rds.aws.upbound.io/v1beta1
+        kind: SubnetGroup
+        spec:
+          forProvider:
+            region: us-west-2
+            description: "Subnet group for PostgreSQL database"
+            subnetIdRefs:
+              - name: subnet-a
+              - name: subnet-b
+
+      patches:
+        # Patch region from claim
+        - type: FromCompositeFieldPath
+          fromFieldPath: spec.parameters.region
+          toFieldPath: spec.forProvider.region
+
+        # Set subnet group name from claim metadata
+        - type: FromCompositeFieldPath
+          fromFieldPath: metadata.uid
+          toFieldPath: metadata.name
+          transforms:
+            - type: string
+              string:
+                fmt: "%s-subnet-group"
+
+    # Security Group for database access
+    - name: security-group
+      base:
+        apiVersion: ec2.aws.upbound.io/v1beta1
+        kind: SecurityGroup
+        spec:
+          forProvider:
+            region: us-west-2
+            description: "Security group for PostgreSQL database"
+            vpcId: vpc-default
+
+      patches:
+        - type: FromCompositeFieldPath
+          fromFieldPath: spec.parameters.region
+          toFieldPath: spec.forProvider.region
+
+        - type: FromCompositeFieldPath
+          fromFieldPath: spec.parameters.networkConfig.vpcId
+          toFieldPath: spec.forProvider.vpcId
+          policy:
+            fromFieldPath: Optional
+
+        - type: FromCompositeFieldPath
+          fromFieldPath: metadata.uid
+          toFieldPath: metadata.name
+          transforms:
+            - type: string
+              string:
+                fmt: "%s-sg"
+
+    # Security Group Rule - allow PostgreSQL access
+    - name: security-group-rule
+      base:
+        apiVersion: ec2.aws.upbound.io/v1beta1
+        kind: SecurityGroupRule
+        spec:
+          forProvider:
+            region: us-west-2
+            type: ingress
+            fromPort: 5432
+            toPort: 5432
+            protocol: tcp
+            cidrBlocks:
+              - "10.0.0.0/8"
+            securityGroupIdSelector:
+              matchControllerRef: true
+
+      patches:
+        - type: FromCompositeFieldPath
+          fromFieldPath: spec.parameters.region
+          toFieldPath: spec.forProvider.region
+
+        - type: FromCompositeFieldPath
+          fromFieldPath: spec.parameters.networkConfig.allowedCIDRs
+          toFieldPath: spec.forProvider.cidrBlocks
+          policy:
+            fromFieldPath: Optional
+
+    # RDS Instance - the actual database
+    - name: rds-instance
+      base:
+        apiVersion: rds.aws.upbound.io/v1beta1
+        kind: Instance
+        spec:
+          forProvider:
+            region: us-west-2
+            engine: postgres
+            engineVersion: "15.3"
+            instanceClass: db.t3.micro
+            allocatedStorage: 20
+            storageType: gp3
+            storageEncrypted: true
+
+            # Database configuration
+            dbName: appdb
+            username: dbadmin
+            passwordSecretRef:
+              name: postgres-password
+              namespace: crossplane-system
+              key: password
+
+            # Network and security
+            publiclyAccessible: false
+            skipFinalSnapshot: true
+
+            # Backup and maintenance
+            backupRetentionPeriod: 7
+            preferredBackupWindow: "03:00-04:00"
+            preferredMaintenanceWindow: "sun:04:00-sun:05:00"
+            autoMinorVersionUpgrade: true
+
+            # Monitoring
+            enabledCloudwatchLogsExports:
+              - postgresql
+              - upgrade
+
+            # Performance
+            performanceInsightsEnabled: true
+            performanceInsightsRetentionPeriod: 7
+
+          # Write connection details to secret
+          writeConnectionSecretToRef:
+            namespace: crossplane-system
+            name: postgres-conn
+
+      patches:
+        # Basic parameters
+        - type: FromCompositeFieldPath
+          fromFieldPath: spec.parameters.region
+          toFieldPath: spec.forProvider.region
+
+        - type: FromCompositeFieldPath
+          fromFieldPath: spec.parameters.engineVersion
+          toFieldPath: spec.forProvider.engineVersion
+
+        - type: FromCompositeFieldPath
+          fromFieldPath: spec.parameters.storageGB
+          toFieldPath: spec.forProvider.allocatedStorage
+
+        # Size-based instance class mapping
+        - type: FromCompositeFieldPath
+          fromFieldPath: spec.parameters.size
+          toFieldPath: spec.forProvider.instanceClass
+          transforms:
+            - type: map
+              map:
+                small: db.t3.micro
+                medium: db.t3.small
+                large: db.t3.medium
+
+        # Network configuration
+        - type: FromCompositeFieldPath
+          fromFieldPath: spec.parameters.networkConfig.publiclyAccessible
+          toFieldPath: spec.forProvider.publiclyAccessible
+          policy:
+            fromFieldPath: Optional
+
+        # Backup retention
+        - type: FromCompositeFieldPath
+          fromFieldPath: spec.parameters.backupRetentionDays
+          toFieldPath: spec.forProvider.backupRetentionPeriod
+
+        # Multi-AZ for high availability
+        - type: FromCompositeFieldPath
+          fromFieldPath: spec.parameters.multiAZ
+          toFieldPath: spec.forProvider.multiAz
+
+        # Generate unique instance identifier
+        - type: FromCompositeFieldPath
+          fromFieldPath: metadata.uid
+          toFieldPath: spec.forProvider.identifier
+          transforms:
+            - type: string
+              string:
+                fmt: "pg-%s"
+                type: Format
+
+        # Connection secret name from claim
+        - type: FromCompositeFieldPath
+          fromFieldPath: metadata.uid
+          toFieldPath: spec.writeConnectionSecretToRef.name
+          transforms:
+            - type: string
+              string:
+                fmt: "%s-postgresql"
+
+      # Connection details to expose
+      connectionDetails:
+        - name: endpoint
+          fromConnectionSecretKey: endpoint
+        - name: port
+          fromConnectionSecretKey: port
+        - name: username
+          fromConnectionSecretKey: username
+        - name: password
+          fromConnectionSecretKey: password
+        - name: database
+          fromFieldPath: spec.forProvider.dbName

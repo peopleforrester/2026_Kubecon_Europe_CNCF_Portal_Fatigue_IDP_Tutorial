@@ -1,0 +1,101 @@
+# ABOUTME: Redis security defaults policy - automatically inject security best practices
+# ABOUTME: Ensures authentication, encryption, and proper snapshot configuration
+
+apiVersion: kyverno.io/v1
+kind: ClusterPolicy
+metadata:
+  name: redis-security-defaults
+  annotations:
+    policies.kyverno.io/title: Redis Security Defaults
+    policies.kyverno.io/category: Security
+    policies.kyverno.io/severity: high
+    policies.kyverno.io/subject: Redis
+    policies.kyverno.io/description: >-
+      Automatically injects security defaults for Redis claims to ensure
+      authentication, encryption, and proper snapshot configuration.
+spec:
+  background: true
+  validationFailureAction: enforce
+
+  rules:
+    # Rule 1: Require authentication
+    - name: require-auth-token
+      match:
+        any:
+          - resources:
+              kinds:
+                - Redis
+      validate:
+        message: "Redis must have authentication enabled (authTokenEnabled must be true)"
+        pattern:
+          spec:
+            parameters:
+              authTokenEnabled: true
+
+    # Rule 2: Require encryption
+    - name: require-encryption
+      match:
+        any:
+          - resources:
+              kinds:
+                - Redis
+      validate:
+        message: "Redis must have encryption enabled (transit and at-rest)"
+        pattern:
+          spec:
+            parameters:
+              transitEncryption: true
+              atRestEncryption: true
+
+    # Rule 3: Inject security defaults if missing
+    - name: inject-encryption-defaults
+      match:
+        any:
+          - resources:
+              kinds:
+                - Redis
+      mutate:
+        patchStrategicMerge:
+          spec:
+            parameters:
+              # Force authentication
+              +(authTokenEnabled): true
+
+              # Force encryption
+              +(transitEncryption): true
+              +(atRestEncryption): true
+
+              # Ensure snapshots for data durability
+              +(snapshotRetentionDays): 3
+
+    # Rule 4: Add security labels
+    - name: add-security-labels
+      match:
+        any:
+          - resources:
+              kinds:
+                - Redis
+      mutate:
+        patchStrategicMerge:
+          metadata:
+            labels:
+              +(security.platform.io/authentication): "true"
+              +(security.platform.io/encryption): "true"
+              +(security.platform.io/snapshots): "enabled"
+              +(policy.kyverno.io/managed): "true"
+
+    # Rule 5: Validate private network access
+    - name: validate-network-access
+      match:
+        any:
+          - resources:
+              kinds:
+                - Redis
+      validate:
+        message: "Redis cannot allow access from 0.0.0.0/0 (public internet)"
+        deny:
+          conditions:
+            any:
+              - key: "{{ request.object.spec.parameters.networkConfig.allowedCIDRs[] }}"
+                operator: Equals
+                value: "0.0.0.0/0"

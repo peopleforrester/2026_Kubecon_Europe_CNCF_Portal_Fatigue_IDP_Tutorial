@@ -1,0 +1,86 @@
+# ABOUTME: Staging environment Redis cache claim - demonstrates HA configuration
+# ABOUTME: Medium-sized cache with automatic failover for pre-production testing
+
+apiVersion: platform.io/v1alpha1
+kind: Redis
+metadata:
+  name: app-cache
+  namespace: staging
+  labels:
+    app: sample-app
+    environment: staging
+  annotations:
+    kubecon.tutorial/description: "Staging Redis cache with HA for pre-production testing"
+    kubecon.tutorial/owner: "platform-team"
+spec:
+  parameters:
+    # Medium instance for staging (maps to cache.t3.small)
+    size: medium
+
+    # Latest Redis version
+    engineVersion: "7.0"
+
+    # High Availability: 2 nodes with automatic failover
+    numNodes: 2
+    automaticFailover: true
+
+    # Security: Enable encryption
+    transitEncryption: true
+    atRestEncryption: true
+    authTokenEnabled: true
+
+    # Snapshot configuration
+    snapshotRetentionDays: 3
+    snapshotWindow: "03:00-05:00"
+
+    # Network configuration
+    networkConfig:
+      # Private access only
+      allowedCIDRs:
+        - "10.0.0.0/8"
+
+    # AWS provider
+    provider: aws
+    region: us-west-2
+
+  # Connection secret for applications
+  writeConnectionSecretToRef:
+    name: app-cache-connection
+
+---
+# Example: How to use Redis cache in your application
+# This shows the connection pattern
+
+# apiVersion: apps/v1
+# kind: Deployment
+# metadata:
+#   name: api-server
+#   namespace: staging
+# spec:
+#   template:
+#     spec:
+#       containers:
+#       - name: api
+#         image: myapi:v2.0
+#         env:
+#         # Redis connection from Crossplane
+#         - name: REDIS_HOST
+#           valueFrom:
+#             secretKeyRef:
+#               name: app-cache-connection
+#               key: endpoint
+#         - name: REDIS_PORT
+#           valueFrom:
+#             secretKeyRef:
+#               name: app-cache-connection
+#               key: port
+#         - name: REDIS_AUTH_TOKEN
+#           valueFrom:
+#             secretKeyRef:
+#               name: app-cache-connection
+#               key: auth-token
+#         # Application config
+#         - name: CACHE_ENABLED
+#           value: "true"
+#         - name: CACHE_TTL
+#           value: "3600"

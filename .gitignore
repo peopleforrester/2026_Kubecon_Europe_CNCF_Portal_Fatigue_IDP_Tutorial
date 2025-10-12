@@ -1,0 +1,374 @@
+# Backend-First IDP - .gitignore
+# Security-first approach for KubeCon demo repository
+
+# ============================================================================
+# CRITICAL SECURITY: NEVER COMMIT CREDENTIALS OR SECRETS
+# ============================================================================
+
+# Cloud Provider Credentials
+*-credentials.yaml
+*-credentials.yml
+*-secret.yaml
+*-secret.yml
+aws-credentials
+gcp-credentials
+azure-credentials
+credentials.json
+service-account.json
+*.pem
+*.key
+*.crt
+*.cert
+*.p12
+*.pfx
+
+# Environment Variables & Configuration
+.env
+.env.*
+.envrc
+*.env
+config.local.*
+
+# Kubernetes Secrets (local development)
+**/secrets/
+**/secret-*.yaml
+kubeconfig
+kubeconfig.*
+.kube/config
+
+# Crossplane Provider Configs with Embedded Credentials
+providerconfig-*.yaml
+# Allow template files
+!providerconfig-template.yaml
+!providerconfig-example.yaml
+
+# ArgoCD Secrets
+argocd-secret.yaml
+argocd-initial-admin-secret.yaml
+
+# Encryption Keys (NEVER COMMIT THESE!)
+*-key.txt
+*-key-*.txt
+.encryption-key*
+encryption-config-generated.yaml
+encryption-config-rotated.yaml
+security/encryption/encryption-config-generated.yaml
+security/encryption/encryption-config-rotated.yaml
+security/encryption/.encryption-key*
+
+# ============================================================================
+# IDE & EDITOR FILES
+# ============================================================================
+
+# JetBrains (IntelliJ IDEA, PyCharm, etc.)
+.idea/
+*.iml
+*.iws
+*.ipr
+.idea_modules/
+
+# Visual Studio Code
+.vscode/
+*.code-workspace
+.history/
+
+# Vim
+*.swp
+*.swo
+*.swn
+*~
+.*.sw[a-z]
+Session.vim
+.netrwhist
+
+# Emacs
+*~
+\#*\#
+.\#*
+.emacs.desktop
+.emacs.desktop.lock
+*.elc
+
+# Sublime Text
+*.sublime-project
+*.sublime-workspace
+
+# ============================================================================
+# OPERATING SYSTEM FILES
+# ============================================================================
+
+# macOS
+.DS_Store
+.DS_Store?
+._*
+.AppleDouble
+.LSOverride
+.Spotlight-V100
+.Trashes
+.AppleDB
+.AppleDesktop
+Network Trash Folder
+Temporary Items
+.apdisk
+Icon
+
+# Windows
+Thumbs.db
+Thumbs.db:encryptable
+ehthumbs.db
+ehthumbs_vista.db
+Desktop.ini
+$RECYCLE.BIN/
+*.lnk
+
+# Linux
+.directory
+.Trash-*
+.nfs*
+
+# ============================================================================
+# BUILD ARTIFACTS & DEPENDENCIES
+# ============================================================================
+
+# Terraform (if used for infrastructure)
+**/.terraform/
+*.tfstate
+*.tfstate.*
+*.tfvars
+*.tfvars.json
+.terraform.lock.hcl
+crash.log
+crash.*.log
+override.tf
+override.tf.json
+*_override.tf
+*_override.tf.json
+
+# Helm Charts (generated)
+**/charts/*.tgz
+**/.helmignore
+requirements.lock
+
+# Kustomize builds (if cached)
+kustomization.yaml.bak
+
+# Python (for Crossplane Functions)
+__pycache__/
+*.py[cod]
+*$py.class
+*.so
+.Python
+build/
+develop-eggs/
+dist/
+downloads/
+eggs/
+.eggs/
+lib/
+lib64/
+parts/
+sdist/
+var/
+wheels/
+share/python-wheels/
+*.egg-info/
+.installed.cfg
+*.egg
+MANIFEST
+venv/
+ENV/
+env/
+.venv
+
+# Node.js (if used for scripts)
+node_modules/
+npm-debug.log*
+yarn-debug.log*
+yarn-error.log*
+package-lock.json
+yarn.lock
+
+# ============================================================================
+# LOGS & TEMPORARY FILES
+# ============================================================================
+
+# Log files
+*.log
+logs/
+*.log.*
+**/*.log
+
+# Temporary files
+tmp/
+temp/
+*.tmp
+*.temp
+*.bak
+*.backup
+*.cache
+
+# Test outputs
+test-results/
+coverage/
+.pytest_cache/
+.coverage
+htmlcov/
+
+# ============================================================================
+# KUBERNETES & CLOUD NATIVE TOOLS
+# ============================================================================
+
+# kubectl temporary files
+.kubectl-last-applied-configuration
+
+# Kubernetes debug files
+*.yaml.debug
+
+# ArgoCD CLI temporary files
+argocd-util-*
+
+# Crossplane package cache
+.crossplane/
+.up/
+*.xpkg.gz
+
+# Kind (Kubernetes in Docker)
+kind-cluster-config.yaml.backup
+
+# Minikube
+.minikube/
+
+# k3s
+k3s.yaml
+
+# Skaffold
+.skaffold/
+
+# Tilt
+.tilt-dev/
+
+# ============================================================================
+# DOCUMENTATION BUILD FILES
+# ============================================================================
+
+# MkDocs
+site/
+.mkdocs_cache/
+
+# Jekyll
+_site/
+.sass-cache/
+.jekyll-cache/
+.jekyll-metadata
+
+# Hugo
+public/
+resources/_gen/
+
+# ============================================================================
+# SECURITY SCANNING TOOLS
+# ============================================================================
+
+# Trivy
+.trivyignore.custom
+
+# Snyk
+.snyk
+
+# SonarQube
+.sonarqube/
+.scannerwork/
+
+# ============================================================================
+# CI/CD & DEVELOPMENT
+# ============================================================================
+
+# GitHub Actions local testing (act)
+.act/
+
+# LocalStack (local AWS simulation)
+.localstack/
+
+# Draft local files
+draft.toml
+draft/
+
+# Skaffold dev artifacts
+skaffold-*
+
+# ============================================================================
+# DEMO & TUTORIAL SPECIFIC
+# ============================================================================
+
+# Local testing clusters
+test-cluster-*
+demo-cluster-*
+
+# Student work (if this is forked)
+my-*
+student-*
+
+# Backup files from tutorial sessions
+backup-*
+*.backup
+
+# Screenshots and recordings
+screenshots/
+recordings/
+*.mov
+*.mp4
+*.gif
+
+# Speaker notes (keep in repo, but allow local override)
+speaker-notes-local.md
+
+# ============================================================================
+# ALLOW THESE TEMPLATE AND EXAMPLE FILES
+# ============================================================================
+
+# These patterns explicitly ALLOW files that would otherwise be ignored
+!*-template.yaml
+!*-example.yaml
+!*-sample.yaml
+!.gitkeep
+!README.md
+!CONTRIBUTING.md
+!LICENSE
+
+# Example environment files (sanitized)
+!.env.example
+!.env.template
+
+# ============================================================================
+# PROJECT SPECIFIC EXCLUSIONS
+# ============================================================================
+
+# Local cloud provider testing
+local-aws/
+local-gcp/
+local-azure/
+
+# Rendered manifests from development
+rendered/
+generated/
+
+# Personal notes
+NOTES.md
+TODO.md
+SCRATCH.md
+
+# Planning and internal documentation (not for public repo)
+_planning/
+
+# Conference-specific materials (keep separate)
+slides-draft/
+abstract-drafts/
+
+# ============================================================================
+# END OF .gitignore
+# ============================================================================
+#
+# Security Reminder:
+# Before committing, always run: git status
+# Review each file to ensure no secrets are included
+# Use tools like git-secrets or gitleaks for additional protection

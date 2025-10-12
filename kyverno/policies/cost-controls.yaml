@@ -1,0 +1,172 @@
+# ABOUTME: Cost control policies - enforce size limits and cost optimization per environment
+# ABOUTME: Prevents oversized instances in dev/staging and ensures production efficiency
+
+apiVersion: kyverno.io/v1
+kind: ClusterPolicy
+metadata:
+  name: infrastructure-cost-controls
+  annotations:
+    policies.kyverno.io/title: Infrastructure Cost Controls
+    policies.kyverno.io/category: Cost Optimization
+    policies.kyverno.io/severity: medium
+    policies.kyverno.io/subject: PostgreSQL, Redis
+    policies.kyverno.io/description: >-
+      Enforces environment-specific cost controls to prevent budget overruns.
+      Dev environments are limited to small instances, staging to medium,
+      and production has flexible sizing with required justification.
+spec:
+  background: false  # Only apply to new/updated resources
+  validationFailureAction: enforce
+
+  rules:
+    # PostgreSQL Cost Controls
+    - name: postgres-dev-size-limit
+      match:
+        any:
+          - resources:
+              kinds:
+                - PostgreSQL
+              namespaces:
+                - dev
+                - development
+      validate:
+        message: "Dev PostgreSQL databases must use 'small' size for cost optimization (~$15/month). Use staging for larger instances."
+        pattern:
+          spec:
+            parameters:
+              size: small
+
+    - name: postgres-dev-no-multi-az
+      match:
+        any:
+          - resources:
+              kinds:
+                - PostgreSQL
+              namespaces:
+                - dev
+                - development
+      validate:
+        message: "Dev PostgreSQL databases cannot use Multi-AZ (cost optimization). Use staging/production for HA."
+        pattern:
+          spec:
+            parameters:
+              multiAZ: false
+
+    - name: postgres-staging-size-limit
+      match:
+        any:
+          - resources:
+              kinds:
+                - PostgreSQL
+              namespaces:
+                - staging
+                - stage
+      validate:
+        message: "Staging PostgreSQL databases limited to 'small' or 'medium' size (~$15-30/month). Use production for larger instances."
+        pattern:
+          spec:
+            parameters:
+              size: "small|medium"
+
+    # Redis Cost Controls
+    - name: redis-dev-size-limit
+      match:
+        any:
+          - resources:
+              kinds:
+                - Redis
+              namespaces:
+                - dev
+                - development
+      validate:
+        message: "Dev Redis caches must use 'small' size for cost optimization (~$10/month). Use staging for larger instances."
+        pattern:
+          spec:
+            parameters:
+              size: small
+
+    - name: redis-dev-single-node
+      match:
+        any:
+          - resources:
+              kinds:
+                - Redis
+              namespaces:
+                - dev
+                - development
+      validate:
+        message: "Dev Redis caches limited to 1 node for cost optimization. Use staging for HA clusters."
+        pattern:
+          spec:
+            parameters:
+              numNodes: 1
+
+    - name: redis-staging-size-limit
+      match:
+        any:
+          - resources:
+              kinds:
+                - Redis
+              namespaces:
+                - staging
+                - stage
+      validate:
+        message: "Staging Redis caches limited to 'small' or 'medium' size (~$10-25/month per node)."
+        pattern:
+          spec:
+            parameters:
+              size: "small|medium"
+
+    # Storage Optimization
+    - name: postgres-dev-storage-limit
+      match:
+        any:
+          - resources:
+              kinds:
+                - PostgreSQL
+              namespaces:
+                - dev
+                - development
+      validate:
+        message: "Dev PostgreSQL storage limited to 100GB max. Use staging/production for larger datasets."
+        pattern:
+          spec:
+            parameters:
+              storageGB: "<=100"
+
+    # Production Cost Awareness
+    - name: production-cost-labels-required
+      match:
+        any:
+          - resources:
+              kinds:
+                - PostgreSQL
+                - Redis
+                - S3Bucket
+              namespaces:
+                - production
+                - prod
+      validate:
+        message: "Production infrastructure must have cost-center and owner labels for billing allocation"
+        pattern:
+          metadata:
+            labels:
+              cost-center: "?*"
+              owner: "?*"
+
+    # Inject cost optimization labels
+    - name: inject-cost-labels
+      match:
+        any:
+          - resources:
+              kinds:
+                - PostgreSQL
+                - Redis
+                - S3Bucket
+      mutate:
+        patchStrategicMerge:
+          metadata:
+            labels:
+              +(cost.platform.io/environment): "{{ request.namespace }}"
+              +(cost.platform.io/type): "{{ request.object.kind }}"
+              +(cost.platform.io/managed-by): "platform-team"

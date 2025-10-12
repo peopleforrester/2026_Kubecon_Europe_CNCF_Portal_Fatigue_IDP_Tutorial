@@ -1,0 +1,155 @@
+# ABOUTME: Secure RBAC configuration for ArgoCD with restricted permissions
+# ABOUTME: Implements principle of least privilege with namespace-based access control
+
+apiVersion: v1
+kind: ConfigMap
+metadata:
+  name: argocd-rbac-cm
+  namespace: argocd
+  labels:
+    app.kubernetes.io/name: argocd-rbac-cm
+    app.kubernetes.io/part-of: argocd
+data:
+  # RBAC policy with restricted permissions
+  policy.csv: |
+    # =========================================================================
+    # Admin Role - Full Access (for platform team)
+    # =========================================================================
+    p, role:admin, applications, *, */*, allow
+    p, role:admin, clusters, *, *, allow
+    p, role:admin, repositories, *, *, allow
+    p, role:admin, projects, *, *, allow
+    p, role:admin, accounts, *, *, allow
+    p, role:admin, gpgkeys, *, *, allow
+    p, role:admin, certificates, *, *, allow
+    g, admin, role:admin
+
+    # =========================================================================
+    # Developer Role - Dev Namespace Only
+    # =========================================================================
+    # Can view all applications
+    p, role:developer, applications, get, */*, allow
+    p, role:developer, applications, list, */*, allow
+
+    # Can create and update in dev namespace only
+    p, role:developer, applications, create, dev/*, allow
+    p, role:developer, applications, update, dev/*, allow
+    p, role:developer, applications, sync, dev/*, allow
+
+    # CANNOT delete applications (prevents accidental deletion)
+    p, role:developer, applications, delete, dev/*, deny
+    p, role:developer, applications, delete, staging/*, deny
+    p, role:developer, applications, delete, production/*, deny
+
+    # CANNOT modify staging or production
+    p, role:developer, applications, create, staging/*, deny
+    p, role:developer, applications, update, staging/*, deny
+    p, role:developer, applications, create, production/*, deny
+    p, role:developer, applications, update, production/*, deny
+
+    # Read-only access to repos and projects
+    p, role:developer, repositories, get, *, allow
+    p, role:developer, projects, get, *, allow
+
+    # =========================================================================
+    # Staging Role - Dev + Staging Namespaces
+    # =========================================================================
+    # Full dev access
+    p, role:staging, applications, get, */*, allow
+    p, role:staging, applications, create, dev/*, allow
+    p, role:staging, applications, update, dev/*, allow
+    p, role:staging, applications, sync, dev/*, allow
+    p, role:staging, applications, delete, dev/*, allow
+
+    # Staging access (create, update, sync - NO delete)
+    p, role:staging, applications, create, staging/*, allow
+    p, role:staging, applications, update, staging/*, allow
+    p, role:staging, applications, sync, staging/*, allow
+    p, role:staging, applications, delete, staging/*, deny
+
+    # CANNOT touch production
+    p, role:staging, applications, *, production/*, deny
+
+    p, role:staging, repositories, get, *, allow
+    p, role:staging, projects, get, *, allow
+
+    # =========================================================================
+    # Production Role - Production Sync Only
+    # =========================================================================
+    # View all applications
+    p, role:production, applications, get, */*, allow
+
+    # Can sync production applications (for releases)
+    p, role:production, applications, sync, production/*, allow
+
+    # CANNOT modify or delete anything in production
+    p, role:production, applications, create, production/*, deny
+    p, role:production, applications, update, production/*, deny
+    p, role:production, applications, delete, production/*, deny
+    p, role:production, applications, override, production/*, deny
+
+    # CANNOT modify dev or staging
+    p, role:production, applications, *, dev/*, deny
+    p, role:production, applications, *, staging/*, deny
+
+    p, role:production, repositories, get, *, allow
+    p, role:production, projects, get, *, allow
+
+    # =========================================================================
+    # Read-Only Role - View Only Access
+    # =========================================================================
+    p, role:readonly, applications, get, */*, allow
+    p, role:readonly, applications, list, */*, allow
+    p, role:readonly, repositories, get, *, allow
+    p, role:readonly, repositories, list, *, allow
+    p, role:readonly, projects, get, *, allow
+    p, role:readonly, projects, list, *, allow
+    p, role:readonly, clusters, get, *, allow
+    p, role:readonly, clusters, list, *, allow
+
+    # Explicitly deny modifications
+    p, role:readonly, applications, create, */*, deny
+    p, role:readonly, applications, update, */*, deny
+    p, role:readonly, applications, delete, */*, deny
+    p, role:readonly, applications, sync, */*, deny
+
+    # =========================================================================
+    # CI/CD Role - Automated Deployments
+    # =========================================================================
+    # For CI/CD service accounts
+    p, role:cicd, applications, get, */*, allow
+    p, role:cicd, applications, sync, dev/*, allow
+    p, role:cicd, applications, sync, staging/*, allow
+    p, role:cicd, applications, sync, production/*, allow
+    p, role:cicd, repositories, get, *, allow
+
+    # CANNOT create, update, or delete
+    p, role:cicd, applications, create, */*, deny
+    p, role:cicd, applications, update, */*, deny
+    p, role:cicd, applications, delete, */*, deny
+
+  # Default policy for unauthenticated users
+  policy.default: role:readonly
+
+  # RBAC scopes
+  scopes: '[groups, email]'
+
+  # SSO/OIDC group mappings (example)
+  policy.matchMode: 'glob'
+
+---
+# Example: Create service account for CI/CD
+apiVersion: v1
+kind: ServiceAccount
+metadata:
+  name: argocd-cicd
+  namespace: argocd
+---
+apiVersion: v1
+kind: Secret
+metadata:
+  name: argocd-cicd-token
+  namespace: argocd
+  annotations:
+    kubernetes.io/service-account.name: argocd-cicd
+type: kubernetes.io/service-account-token

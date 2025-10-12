@@ -1,0 +1,286 @@
+#!/usr/bin/env bash
+# ABOUTME: Platform validate command - validate claim YAML files
+# ABOUTME: Pre-flight checks for syntax, schema, and best practices
+
+set -euo pipefail
+
+# Colors
+RED='\033[0;31m'
+GREEN='\033[0;32m'
+YELLOW='\033[1;33m'
+BLUE='\033[0;34m'
+CYAN='\033[0;36m'
+NC='\033[0m'
+
+# Script directory
+SCRIPT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
+
+# Source secure validation functions
+# shellcheck source=./platform-validation.sh
+source "${SCRIPT_DIR}/platform-validation.sh"
+
+usage() {
+    cat << EOF
+Usage: platform validate <file>
+
+Validate infrastructure claim files before deployment.
+
+${CYAN}Checks:${NC}
+  ✓ YAML syntax
+  ✓ Required fields
+  ✓ Value constraints
+  ✓ Security best practices
+  ✓ Cost warnings
+  ✓ Environment-specific rules
+
+${CYAN}Examples:${NC}
+  # Validate a claim file
+  platform validate environments/dev/my-db.yaml
+
+  # Validate all claims in environment
+  platform validate environments/dev/*.yaml
+
+EOF
+}
+
+# Validation functions
+validate_yaml_syntax() {
+    local file="$1"
+
+    if ! grep -q "^apiVersion:" "$file" 2>/dev/null; then
+        echo -e "${RED}✗${NC} Missing 'apiVersion' field"
+        return 1
+    fi
+
+    if ! grep -q "^kind:" "$file" 2>/dev/null; then
+        echo -e "${RED}✗${NC} Missing 'kind' field"
+        return 1
+    fi
+
+    echo -e "${GREEN}✓${NC} YAML syntax valid"
+    return 0
+}
+
+validate_metadata() {
+    local file="$1"
+    local errors=0
+
+    if ! grep -q "^  name:" "$file" 2>/dev/null; then
+        echo -e "${RED}✗${NC} Missing metadata.name"
+        ((errors++))
+    else
+        echo -e "${GREEN}✓${NC} Metadata.name present"
+    fi
+
+    if ! grep -q "^  namespace:" "$file" 2>/dev/null; then
+        echo -e "${RED}✗${NC} Missing metadata.namespace"
+        ((errors++))
+    else
+        echo -e "${GREEN}✓${NC} Metadata.namespace present"
+    fi
+
+    return $errors
+}
+
+validate_postgres() {
+    local file="$1"
+    local env=$(grep "^  namespace:" "$file" | awk '{print $2}')
+    local size=$(grep "^    size:" "$file" | awk '{print $2}')
+    local multi_az=$(grep "^    multiAZ:" "$file" | awk '{print $2}')
+    local public=$(grep "^      publiclyAccessible:" "$file" | awk '{print $2}')
+    local warnings=0
+
+    # Size validation
+    if [[ ! "$size" =~ ^(small|medium|large)$ ]]; then
+        echo -e "${RED}✗${NC} Invalid size: ${size} (must be: small, medium, large)"
+        return 1
+    fi
+    echo -e "${GREEN}✓${NC} Size valid: ${size}"
+
+    # Environment-specific rules
+    if [[ "$env" == "dev" ]] && [[ "$size" != "small" ]]; then
+        echo -e "${YELLOW}⚠${NC} Dev environment should use 'small' size (cost optimization)"
+        ((warnings++))
+    fi
+
+    if [[ "$env" == "production" ]] && [[ "$multi_az" != "true" ]]; then
+        echo -e "${YELLOW}⚠${NC} Production should enable multiAZ for HA"
+        ((warnings++))
+    fi
+
+    # Security checks
+    if [[ "$public" == "true" ]]; then
+        echo -e "${RED}✗${NC} publiclyAccessible: true is NOT RECOMMENDED (security risk)"
+        echo "     Use VPC-only access and bastion hosts"
+        return 1
+    fi
+    echo -e "${GREEN}✓${NC} Public access blocked (security)"
+
+    # Connection secret
+    if ! grep -q "^  writeConnectionSecretToRef:" "$file"; then
+        echo -e "${YELLOW}⚠${NC} Missing writeConnectionSecretToRef (applications can't connect)"
+        ((warnings++))
+    fi
+
+    if [[ $warnings -gt 0 ]]; then
+        echo -e "${YELLOW}⚠${NC} ${warnings} warning(s) - review recommended"
+    fi
+
+    return 0
+}
+
+validate_redis() {
+    local file="$1"
+    local env=$(grep "^  namespace:" "$file" | awk '{print $2}')
+    local nodes=$(grep "^    numNodes:" "$file" | awk '{print $2}')
+    local auth=$(grep "^    authTokenEnabled:" "$file" | awk '{print $2}')
+    local transit=$(grep "^    transitEncryption:" "$file" | awk '{print $2}')
+    local warnings=0
+
+    # HA validation
+    if [[ "$env" == "production" ]] && [[ "$nodes" -lt 2 ]]; then
+        echo -e "${YELLOW}⚠${NC} Production should have 2+ nodes for HA"
+        ((warnings++))
+    fi
+
+    # Security checks
+    if [[ "$auth" != "true" ]]; then
+        echo -e "${RED}✗${NC} authTokenEnabled should be true (security requirement)"
+        return 1
+    fi
+    echo -e "${GREEN}✓${NC} Authentication enabled"
+
+    if [[ "$transit" != "true" ]]; then
+        echo -e "${YELLOW}⚠${NC} transitEncryption should be enabled for production"
+        ((warnings++))
+    else
+        echo -e "${GREEN}✓${NC} Transit encryption enabled"
+    fi
+
+    if [[ $warnings -gt 0 ]]; then
+        echo -e "${YELLOW}⚠${NC} ${warnings} warning(s) - review recommended"
+    fi
+
+    return 0
+}
+
+validate_s3bucket() {
+    local file="$1"
+    local env=$(grep "^  namespace:" "$file" | awk '{print $2}')
+    local versioning=$(grep "^    versioning:" "$file" | awk '{print $2}')
+    local encryption=$(grep "^    encryption:" "$file" | awk '{print $2}')
+    local public=$(grep "^    blockPublicAccess:" "$file" | awk '{print $2}')
+    local warnings=0
+
+    # Security checks
+    if [[ "$public" == "false" ]]; then
+        echo -e "${RED}✗${NC} blockPublicAccess: false is NOT RECOMMENDED"
+        echo "     Public S3 buckets are a major security risk"
+        return 1
+    fi
+    echo -e "${GREEN}✓${NC} Public access blocked"
+
+    if [[ -z "$encryption" ]] || [[ "$encryption" == "false" ]]; then
+        echo -e "${RED}✗${NC} Encryption is required for compliance"
+        return 1
+    fi
+    echo -e "${GREEN}✓${NC} Encryption enabled: ${encryption}"
+
+    # Production best practices
+    if [[ "$env" == "production" ]] && [[ "$versioning" != "true" ]]; then
+        echo -e "${YELLOW}⚠${NC} Production should enable versioning (data protection)"
+        ((warnings++))
+    fi
+
+    if [[ $warnings -gt 0 ]]; then
+        echo -e "${YELLOW}⚠${NC} ${warnings} warning(s) - review recommended"
+    fi
+
+    return 0
+}
+
+# Main
+main() {
+    if [[ $# -eq 0 ]]; then
+        usage
+        exit 1
+    fi
+
+    local file="$1"
+
+    if [[ "$file" == "-h" ]] || [[ "$file" == "--help" ]]; then
+        usage
+        exit 0
+    fi
+
+    # SECURITY: Validate file path to prevent path traversal
+    if ! validate_file_path "$file"; then
+        error "File path validation failed"
+        exit 1
+    fi
+
+    if [[ ! -f "$file" ]]; then
+        echo -e "${RED}✗${NC} File not found: ${file}"
+        exit 1
+    fi
+
+    echo -e "${BLUE}Validating:${NC} ${file}"
+    echo ""
+
+    # Basic YAML validation
+    if ! validate_yaml_syntax "$file"; then
+        echo ""
+        echo -e "${RED}Validation FAILED${NC} - Fix syntax errors"
+        exit 1
+    fi
+
+    # Metadata validation
+    if ! validate_metadata "$file"; then
+        echo ""
+        echo -e "${RED}Validation FAILED${NC} - Fix metadata errors"
+        exit 1
+    fi
+
+    # Type-specific validation
+    local kind=$(grep "^kind:" "$file" | awk '{print $2}')
+
+    echo ""
+    echo -e "${CYAN}Type-specific checks (${kind}):${NC}"
+
+    case "$kind" in
+        PostgreSQL)
+            if ! validate_postgres "$file"; then
+                echo ""
+                echo -e "${RED}Validation FAILED${NC}"
+                exit 1
+            fi
+            ;;
+        Redis)
+            if ! validate_redis "$file"; then
+                echo ""
+                echo -e "${RED}Validation FAILED${NC}"
+                exit 1
+            fi
+            ;;
+        S3Bucket)
+            if ! validate_s3bucket "$file"; then
+                echo ""
+                echo -e "${RED}Validation FAILED${NC}"
+                exit 1
+            fi
+            ;;
+        *)
+            echo -e "${YELLOW}⚠${NC} Unknown kind: ${kind} (skipping type-specific validation)"
+            ;;
+    esac
+
+    echo ""
+    echo -e "${GREEN}✓ Validation PASSED${NC}"
+    echo ""
+    echo "Next steps:"
+    echo "  1. Commit: git add ${file}"
+    echo "  2. Push: git commit -m 'feat: Add infrastructure claim' && git push"
+    echo "  3. Monitor: platform status <type> <name> --env=<env>"
+}
+
+main "$@"

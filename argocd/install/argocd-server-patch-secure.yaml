@@ -1,0 +1,101 @@
+# ABOUTME: Secure ArgoCD server configuration with TLS enabled
+# ABOUTME: Production-ready configuration with proper TLS and resource limits
+
+apiVersion: v1
+kind: Service
+metadata:
+  name: argocd-server
+  namespace: argocd
+  annotations:
+    # For AWS: service.beta.kubernetes.io/aws-load-balancer-ssl-cert: arn:aws:acm:...
+    # For GCP: cloud.google.com/load-balancer-type: "Internal"
+spec:
+  # Production: Use ClusterIP with Ingress
+  type: ClusterIP
+  ports:
+  - name: http
+    port: 80
+    protocol: TCP
+    targetPort: 8080
+  - name: https
+    port: 443
+    protocol: TCP
+    targetPort: 8080
+  selector:
+    app.kubernetes.io/name: argocd-server
+---
+# ArgoCD Server Deployment - Secure Configuration
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: argocd-server
+  namespace: argocd
+spec:
+  template:
+    spec:
+      containers:
+      - name: argocd-server
+        # SECURE: TLS enabled, no --insecure flag
+        command:
+        - argocd-server
+        - --staticassets
+        - /shared/app
+        # TLS configuration
+        volumeMounts:
+        - name: tls-certs
+          mountPath: /app/config/tls
+          readOnly: true
+        # Production resource limits
+        resources:
+          limits:
+            cpu: 1000m
+            memory: 512Mi
+          requests:
+            cpu: 500m
+            memory: 256Mi
+        # Security context
+        securityContext:
+          runAsNonRoot: true
+          runAsUser: 999
+          capabilities:
+            drop:
+            - ALL
+          readOnlyRootFilesystem: true
+          allowPrivilegeEscalation: false
+      volumes:
+      - name: tls-certs
+        secret:
+          secretName: argocd-server-tls
+          optional: true
+---
+# Ingress for ArgoCD (with TLS)
+apiVersion: networking.k8s.io/v1
+kind: Ingress
+metadata:
+  name: argocd-server
+  namespace: argocd
+  annotations:
+    # cert-manager for automatic TLS
+    cert-manager.io/cluster-issuer: letsencrypt-prod
+    # NGINX ingress
+    nginx.ingress.kubernetes.io/ssl-passthrough: "true"
+    nginx.ingress.kubernetes.io/backend-protocol: "HTTPS"
+    # Force HTTPS
+    nginx.ingress.kubernetes.io/force-ssl-redirect: "true"
+spec:
+  ingressClassName: nginx
+  tls:
+  - hosts:
+    - argocd.yourdomain.com
+    secretName: argocd-server-tls
+  rules:
+  - host: argocd.yourdomain.com
+    http:
+      paths:
+      - path: /
+        pathType: Prefix
+        backend:
+          service:
+            name: argocd-server
+            port:
+              name: https

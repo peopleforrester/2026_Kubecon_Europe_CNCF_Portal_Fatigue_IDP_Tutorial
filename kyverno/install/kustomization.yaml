@@ -1,0 +1,24 @@
+# ABOUTME: Kyverno installation via Kustomize - policy engine for Kubernetes
+# ABOUTME: Provides automatic security defaults, cost controls, and compliance enforcement
+
+apiVersion: kustomize.config.k8s.io/v1beta1
+kind: Kustomization
+
+namespace: kyverno
+
+resources:
+  # Kyverno v1.11.0 (latest stable)
+  - https://github.com/kyverno/kyverno/releases/download/v1.11.0/install.yaml
+
+patches:
+  - path: kyverno-config-patch.yaml
+    target:
+      kind: ConfigMap
+      name: kyverno
+      namespace: kyverno
+
+configMapGenerator:
+  - name: kyverno-metrics
+    namespace: kyverno
+    literals:
+      - enabled=true

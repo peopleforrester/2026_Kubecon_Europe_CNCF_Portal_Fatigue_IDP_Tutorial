@@ -1,0 +1,77 @@
+# ABOUTME: Azure provider configuration using Upbound granular providers
+# ABOUTME: Installs Storage, SQL, and Cache providers for infrastructure provisioning
+
+---
+# Azure Storage Provider - for blob storage provisioning
+apiVersion: pkg.crossplane.io/v1
+kind: Provider
+metadata:
+  name: provider-azure-storage
+  annotations:
+    kubecon.tutorial/description: "Azure Storage provider for blob storage"
+spec:
+  package: xpkg.upbound.io/upbound/provider-azure-storage:v1.2.0
+  packagePullPolicy: IfNotPresent
+  revisionActivationPolicy: Automatic
+  revisionHistoryLimit: 1
+
+---
+# Azure SQL Provider - for Azure SQL Database provisioning
+apiVersion: pkg.crossplane.io/v1
+kind: Provider
+metadata:
+  name: provider-azure-sql
+  annotations:
+    kubecon.tutorial/description: "Azure SQL provider for managed databases"
+spec:
+  package: xpkg.upbound.io/upbound/provider-azure-sql:v1.2.0
+  packagePullPolicy: IfNotPresent
+  revisionActivationPolicy: Automatic
+  revisionHistoryLimit: 1
+
+---
+# Azure Network Provider - for VNet and networking
+apiVersion: pkg.crossplane.io/v1
+kind: Provider
+metadata:
+  name: provider-azure-network
+  annotations:
+    kubecon.tutorial/description: "Azure Network provider for VNet and NSG"
+spec:
+  package: xpkg.upbound.io/upbound/provider-azure-network:v1.2.0
+  packagePullPolicy: IfNotPresent
+  revisionActivationPolicy: Automatic
+  revisionHistoryLimit: 1
+
+---
+# Azure Cache Provider - for Azure Cache for Redis provisioning
+apiVersion: pkg.crossplane.io/v1
+kind: Provider
+metadata:
+  name: provider-azure-cache
+  annotations:
+    kubecon.tutorial/description: "Azure Cache provider for Redis"
+spec:
+  package: xpkg.upbound.io/upbound/provider-azure-cache:v1.2.0
+  packagePullPolicy: IfNotPresent
+  revisionActivationPolicy: Automatic
+  revisionHistoryLimit: 1
+
+---
+# ProviderConfig for Azure
+# NOTE: This requires Azure service principal credentials as a secret
+# See: crossplane/providers/azure-credentials-template.yaml
+apiVersion: azure.upbound.io/v1beta1
+kind: ProviderConfig
+metadata:
+  name: default
+  annotations:
+    kubecon.tutorial/description: "Default Azure provider configuration"
+    kubecon.tutorial/setup-required: "Create azure-credentials secret before applying"
+spec:
+  credentials:
+    source: Secret
+    secretRef:
+      namespace: crossplane-system
+      name: azure-credentials
+      key: credentials

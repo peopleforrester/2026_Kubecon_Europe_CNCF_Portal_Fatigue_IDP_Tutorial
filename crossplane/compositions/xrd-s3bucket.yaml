@@ -1,0 +1,155 @@
+# ABOUTME: S3 Bucket XRD (CompositeResourceDefinition) - API for requesting object storage
+# ABOUTME: Defines the developer-facing interface for S3/object storage provisioning
+
+apiVersion: apiextensions.crossplane.io/v1
+kind: CompositeResourceDefinition
+metadata:
+  name: xs3buckets.platform.io
+  annotations:
+    kubecon.tutorial/description: "Composite definition for S3 object storage buckets"
+    kubecon.tutorial/cost-estimate: "$0.023 per GB/month + requests"
+spec:
+  group: platform.io
+  names:
+    kind: XS3Bucket
+    plural: xs3buckets
+
+  claimNames:
+    kind: S3Bucket
+    plural: s3buckets
+
+  connectionSecretKeys:
+    - bucket-name
+    - region
+    - arn
+    - endpoint
+
+  versions:
+  - name: v1alpha1
+    served: true
+    referenceable: true
+    schema:
+      openAPIV3Schema:
+        type: object
+        properties:
+          spec:
+            type: object
+            properties:
+              parameters:
+                type: object
+                properties:
+                  # Bucket name (optional - auto-generated if not provided)
+                  bucketName:
+                    type: string
+                    description: "Bucket name (must be globally unique, auto-generated if empty)"
+
+                  # Versioning
+                  versioning:
+                    type: boolean
+                    description: "Enable object versioning"
+                    default: true
+
+                  # Encryption
+                  encryption:
+                    type: string
+                    description: "Encryption type (AES256 or aws:kms)"
+                    default: AES256
+                    enum:
+                      - AES256
+                      - aws:kms
+
+                  # Public access
+                  blockPublicAccess:
+                    type: boolean
+                    description: "Block all public access (recommended)"
+                    default: true
+
+                  # Lifecycle rules
+                  lifecycleRules:
+                    type: object
+                    description: "Lifecycle management configuration"
+                    properties:
+                      enabled:
+                        type: boolean
+                        default: false
+
+                      transitionToIA:
+                        type: integer
+                        description: "Days until transition to Infrequent Access (0 = disabled)"
+                        default: 30
+                        minimum: 0
+
+                      transitionToGlacier:
+                        type: integer
+                        description: "Days until transition to Glacier (0 = disabled)"
+                        default: 90
+                        minimum: 0
+
+                      expireDays:
+                        type: integer
+                        description: "Days until objects expire (0 = never)"
+                        default: 0
+                        minimum: 0
+
+                  # CORS configuration
+                  cors:
+                    type: object
+                    description: "CORS configuration for web access"
+                    properties:
+                      enabled:
+                        type: boolean
+                        default: false
+
+                      allowedOrigins:
+                        type: array
+                        items:
+                          type: string
+                        default:
+                          - "*"
+
+                      allowedMethods:
+                        type: array
+                        items:
+                          type: string
+                        default:
+                          - GET
+                          - HEAD
+
+                  # Logging
+                  accessLogging:
+                    type: object
+                    properties:
+                      enabled:
+                        type: boolean
+                        default: false
+
+                      targetBucket:
+                        type: string
+                        description: "Bucket to store access logs"
+
+                  # Provider
+                  provider:
+                    type: string
+                    description: "Cloud provider"
+                    default: aws
+                    enum:
+                      - aws
+                      - gcp
+                      - azure
+
+                  region:
+                    type: string
+                    description: "Cloud region"
+                    default: us-west-2
+
+          status:
+            type: object
+            properties:
+              bucketName:
+                type: string
+              arn:
+                type: string
+              region:
+                type: string
+              endpoint:
+                type: string

@@ -1,0 +1,156 @@
+# ABOUTME: PostgreSQL XRD (CompositeResourceDefinition) - API for requesting databases
+# ABOUTME: Defines the developer-facing interface for PostgreSQL provisioning
+
+apiVersion: apiextensions.crossplane.io/v1
+kind: CompositeResourceDefinition
+metadata:
+  name: xpostgresqls.platform.io
+  annotations:
+    kubecon.tutorial/description: "Composite definition for PostgreSQL databases"
+    kubecon.tutorial/cost-estimate: "$15-200/month depending on instance size"
+spec:
+  group: platform.io
+  names:
+    kind: XPostgreSQL
+    plural: xpostgresqls
+
+  # Claim names - what developers use in their namespaces
+  claimNames:
+    kind: PostgreSQL
+    plural: postgresqls
+
+  # Connection secret keys - what gets stored for apps to consume
+  connectionSecretKeys:
+    - endpoint
+    - port
+    - username
+    - password
+    - database
+
+  # Versions of this API
+  versions:
+  - name: v1alpha1
+    served: true
+    referenceable: true
+    schema:
+      openAPIV3Schema:
+        type: object
+        properties:
+          spec:
+            type: object
+            properties:
+              # Parameters developers can configure
+              parameters:
+                type: object
+                properties:
+                  # Instance size selection
+                  size:
+                    type: string
+                    description: "Database instance size (small, medium, large)"
+                    default: small
+                    enum:
+                      - small    # db.t3.micro  - Dev/test
+                      - medium   # db.t3.small  - Staging
+                      - large    # db.t3.medium - Production
+
+                  # Storage configuration
+                  storageGB:
+                    type: integer
+                    description: "Storage size in GB"
+                    default: 20
+                    minimum: 20
+                    maximum: 1000
+
+                  # PostgreSQL version
+                  engineVersion:
+                    type: string
+                    description: "PostgreSQL engine version"
+                    default: "15.3"
+                    enum:
+                      - "15.3"
+                      - "14.8"
+                      - "13.11"
+
+                  # Network configuration
+                  networkConfig:
+                    type: object
+                    description: "Network and security configuration"
+                    properties:
+                      publiclyAccessible:
+                        type: boolean
+                        description: "Allow public internet access (not recommended)"
+                        default: false
+
+                      vpcId:
+                        type: string
+                        description: "VPC ID for database deployment (optional)"
+
+                      subnetIds:
+                        type: array
+                        description: "Subnet IDs for multi-AZ deployment (optional)"
+                        items:
+                          type: string
+
+                      allowedCIDRs:
+                        type: array
+                        description: "CIDR blocks allowed to connect"
+                        items:
+                          type: string
+                        default:
+                          - "10.0.0.0/8"  # Private networks only by default
+
+                  # Backup configuration
+                  backupRetentionDays:
+                    type: integer
+                    description: "Number of days to retain backups"
+                    default: 7
+                    minimum: 1
+                    maximum: 35
+
+                  # High availability
+                  multiAZ:
+                    type: boolean
+                    description: "Enable multi-AZ deployment for HA"
+                    default: false
+
+                  # Provider selection
+                  provider:
+                    type: string
+                    description: "Cloud provider (aws, gcp, azure)"
+                    default: aws
+                    enum:
+                      - aws
+                      - gcp
+                      - azure
+
+                  # Region
+                  region:
+                    type: string
+                    description: "Cloud provider region"
+                    default: us-west-2
+
+                # No required fields - all have sensible defaults
+                # This makes it easy for developers to get started
+
+          # Status fields (read-only, populated by Crossplane)
+          status:
+            type: object
+            properties:
+              # Connection details
+              endpoint:
+                type: string
+                description: "Database endpoint hostname"
+
+              port:
+                type: string
+                description: "Database port"
+
+              # Resource state
+              state:
+                type: string
+                description: "Current state of the database"
+
+              # ARN or resource ID
+              resourceId:
+                type: string
+                description: "Cloud provider resource identifier"

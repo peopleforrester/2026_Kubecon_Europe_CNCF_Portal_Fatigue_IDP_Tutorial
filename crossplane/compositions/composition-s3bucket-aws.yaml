@@ -1,0 +1,234 @@
+# ABOUTME: S3 Bucket Composition for AWS - creates secure, production-ready object storage
+# ABOUTME: Implements versioning, encryption, public access blocking, and lifecycle policies
+
+apiVersion: apiextensions.crossplane.io/v1
+kind: Composition
+metadata:
+  name: xs3bucket.aws.platform.io
+  labels:
+    provider: aws
+    service: s3
+    storage: object
+  annotations:
+    kubecon.tutorial/description: "AWS S3 bucket with security best practices"
+    kubecon.tutorial/cost-warning: "Creates billable AWS resources"
+spec:
+  compositeTypeRef:
+    apiVersion: platform.io/v1alpha1
+    kind: XS3Bucket
+
+  mode: Resources
+
+  resources:
+    # S3 Bucket - the main resource
+    - name: s3-bucket
+      base:
+        apiVersion: s3.aws.upbound.io/v1beta1
+        kind: Bucket
+        spec:
+          forProvider:
+            region: us-west-2
+            forceDestroy: true  # For tutorial - allows deletion with objects
+
+      patches:
+        - type: FromCompositeFieldPath
+          fromFieldPath: spec.parameters.region
+          toFieldPath: spec.forProvider.region
+
+        # Generate unique bucket name if not provided
+        - type: FromCompositeFieldPath
+          fromFieldPath: spec.parameters.bucketName
+          toFieldPath: metadata.name
+          policy:
+            fromFieldPath: Optional
+
+        - type: FromCompositeFieldPath
+          fromFieldPath: metadata.uid
+          toFieldPath: metadata.name
+          transforms:
+            - type: string
+              string:
+                fmt: "platform-%s"
+          policy:
+            fromFieldPath: Required
+
+    # Bucket Versioning
+    - name: bucket-versioning
+      base:
+        apiVersion: s3.aws.upbound.io/v1beta1
+        kind: BucketVersioningV2
+        spec:
+          forProvider:
+            region: us-west-2
+            bucketSelector:
+              matchControllerRef: true
+            versioningConfiguration:
+              - status: Enabled
+
+      patches:
+        - type: FromCompositeFieldPath
+          fromFieldPath: spec.parameters.region
+          toFieldPath: spec.forProvider.region
+
+        # Enable/disable versioning based on parameter
+        - type: FromCompositeFieldPath
+          fromFieldPath: spec.parameters.versioning
+          toFieldPath: spec.forProvider.versioningConfiguration[0].status
+          transforms:
+            - type: map
+              map:
+                "true": Enabled
+                "false": Disabled
+
+    # Server-Side Encryption
+    - name: bucket-encryption
+      base:
+        apiVersion: s3.aws.upbound.io/v1beta1
+        kind: BucketServerSideEncryptionConfigurationV2
+        spec:
+          forProvider:
+            region: us-west-2
+            bucketSelector:
+              matchControllerRef: true
+            rule:
+              - applyServerSideEncryptionByDefault:
+                  - sseAlgorithm: AES256
+
+      patches:
+        - type: FromCompositeFieldPath
+          fromFieldPath: spec.parameters.region
+          toFieldPath: spec.forProvider.region
+
+        - type: FromCompositeFieldPath
+          fromFieldPath: spec.parameters.encryption
+          toFieldPath: spec.forProvider.rule[0].applyServerSideEncryptionByDefault[0].sseAlgorithm
+
+    # Public Access Block - security best practice
+    - name: bucket-public-access-block
+      base:
+        apiVersion: s3.aws.upbound.io/v1beta1
+        kind: BucketPublicAccessBlock
+        spec:
+          forProvider:
+            region: us-west-2
+            bucketSelector:
+              matchControllerRef: true
+            blockPublicAcls: true
+            blockPublicPolicy: true
+            ignorePublicAcls: true
+            restrictPublicBuckets: true
+
+      patches:
+        - type: FromCompositeFieldPath
+          fromFieldPath: spec.parameters.region
+          toFieldPath: spec.forProvider.region
+
+        # Allow override if explicitly needed (not recommended)
+        - type: FromCompositeFieldPath
+          fromFieldPath: spec.parameters.blockPublicAccess
+          toFieldPath: spec.forProvider.blockPublicAcls
+
+        - type: FromCompositeFieldPath
+          fromFieldPath: spec.parameters.blockPublicAccess
+          toFieldPath: spec.forProvider.blockPublicPolicy
+
+        - type: FromCompositeFieldPath
+          fromFieldPath: spec.parameters.blockPublicAccess
+          toFieldPath: spec.forProvider.ignorePublicAcls
+
+        - type: FromCompositeFieldPath
+          fromFieldPath: spec.parameters.blockPublicAccess
+          toFieldPath: spec.forProvider.restrictPublicBuckets
+
+    # Lifecycle Configuration (optional)
+    - name: bucket-lifecycle
+      base:
+        apiVersion: s3.aws.upbound.io/v1beta1
+        kind: BucketLifecycleConfigurationV2
+        spec:
+          forProvider:
+            region: us-west-2
+            bucketSelector:
+              matchControllerRef: true
+            rule:
+              - id: lifecycle-rule
+                status: Enabled
+                transition:
+                  - days: 30
+                    storageClass: STANDARD_IA
+                  - days: 90
+                    storageClass: GLACIER
+
+      patches:
+        - type: FromCompositeFieldPath
+          fromFieldPath: spec.parameters.region
+          toFieldPath: spec.forProvider.region
+
+        # Only create if lifecycle is enabled
+        - type: FromCompositeFieldPath
+          fromFieldPath: spec.parameters.lifecycleRules.enabled
+          toFieldPath: spec.forProvider.rule[0].status
+          transforms:
+            - type: map
+              map:
+                "true": Enabled
+                "false": Disabled
+
+        - type: FromCompositeFieldPath
+          fromFieldPath: spec.parameters.lifecycleRules.transitionToIA
+          toFieldPath: spec.forProvider.rule[0].transition[0].days
+          policy:
+            fromFieldPath: Optional
+
+        - type: FromCompositeFieldPath
+          fromFieldPath: spec.parameters.lifecycleRules.transitionToGlacier
+          toFieldPath: spec.forProvider.rule[0].transition[1].days
+          policy:
+            fromFieldPath: Optional
+
+    # Bucket Policy (for access control)
+    - name: bucket-policy
+      base:
+        apiVersion: s3.aws.upbound.io/v1beta1
+        kind: BucketPolicy
+        spec:
+          forProvider:
+            region: us-west-2
+            bucketSelector:
+              matchControllerRef: true
+            policy: |
+              {
+                "Version": "2012-10-17",
+                "Statement": [
+                  {
+                    "Effect": "Deny",
+                    "Principal": "*",
+                    "Action": "s3:*",
+                    "Resource": [
+                      "arn:aws:s3:::BUCKET_NAME/*",
+                      "arn:aws:s3:::BUCKET_NAME"
+                    ],
+                    "Condition": {
+                      "Bool": {
+                        "aws:SecureTransport": "false"
+                      }
+                    }
+                  }
+                ]
+              }
+
+      patches:
+        - type: FromCompositeFieldPath
+          fromFieldPath: spec.parameters.region
+          toFieldPath: spec.forProvider.region
+
+      # Connection details - bucket information for apps
+      connectionDetails:
+        - name: bucket-name
+          fromFieldPath: status.atProvider.id
+        - name: region
+          fromFieldPath: spec.forProvider.region
+        - name: arn
+          fromFieldPath: status.atProvider.arn
+        - name: endpoint
+          fromFieldPath: status.atProvider.bucketRegionalDomainName

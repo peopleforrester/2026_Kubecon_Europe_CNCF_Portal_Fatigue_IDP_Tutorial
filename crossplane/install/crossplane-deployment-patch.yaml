@@ -1,0 +1,42 @@
+# ABOUTME: Crossplane deployment patch for tutorial resource limits and configuration
+# ABOUTME: Configures Crossplane controller with appropriate resources for demo environment
+
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: crossplane
+  namespace: crossplane-system
+spec:
+  replicas: 1
+  template:
+    spec:
+      containers:
+      - name: crossplane
+        # Enable composition functions and environment configs
+        args:
+        - core
+        - start
+        - --enable-composition-functions
+        - --enable-environment-configs
+        - --debug
+
+        # Resource limits for tutorial environment
+        resources:
+          limits:
+            cpu: 500m
+            memory: 512Mi
+          requests:
+            cpu: 250m
+            memory: 256Mi
+
+        # Environment variables for configuration
+        env:
+        - name: POD_NAMESPACE
+          valueFrom:
+            fieldRef:
+              fieldPath: metadata.namespace
+        - name: LEADER_ELECTION
+          value: "true"
+        # Increase reconcile timeout for cloud API calls
+        - name: RECONCILE_TIMEOUT
+          value: "1m"

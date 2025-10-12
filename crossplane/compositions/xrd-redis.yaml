@@ -1,0 +1,151 @@
+# ABOUTME: Redis XRD (CompositeResourceDefinition) - API for requesting Redis cache clusters
+# ABOUTME: Defines the developer-facing interface for Redis/cache provisioning
+
+apiVersion: apiextensions.crossplane.io/v1
+kind: CompositeResourceDefinition
+metadata:
+  name: xredis.platform.io
+  annotations:
+    kubecon.tutorial/description: "Composite definition for Redis cache clusters"
+    kubecon.tutorial/cost-estimate: "$10-100/month depending on node size and count"
+spec:
+  group: platform.io
+  names:
+    kind: XRedis
+    plural: xredis
+
+  # Claim names - what developers use
+  claimNames:
+    kind: Redis
+    plural: redis
+
+  # Connection secret keys
+  connectionSecretKeys:
+    - endpoint
+    - port
+    - auth-token
+
+  versions:
+  - name: v1alpha1
+    served: true
+    referenceable: true
+    schema:
+      openAPIV3Schema:
+        type: object
+        properties:
+          spec:
+            type: object
+            properties:
+              parameters:
+                type: object
+                properties:
+                  # Node size
+                  size:
+                    type: string
+                    description: "Cache node size (small, medium, large)"
+                    default: small
+                    enum:
+                      - small    # cache.t3.micro  - Dev/test
+                      - medium   # cache.t3.small  - Staging
+                      - large    # cache.t3.medium - Production
+
+                  # Redis version
+                  engineVersion:
+                    type: string
+                    description: "Redis engine version"
+                    default: "7.0"
+                    enum:
+                      - "7.0"
+                      - "6.2"
+
+                  # Number of nodes
+                  numNodes:
+                    type: integer
+                    description: "Number of cache nodes (1-6)"
+                    default: 1
+                    minimum: 1
+                    maximum: 6
+
+                  # High availability
+                  automaticFailover:
+                    type: boolean
+                    description: "Enable automatic failover (requires 2+ nodes)"
+                    default: false
+
+                  # Security
+                  transitEncryption:
+                    type: boolean
+                    description: "Enable in-transit encryption (TLS)"
+                    default: true
+
+                  atRestEncryption:
+                    type: boolean
+                    description: "Enable at-rest encryption"
+                    default: true
+
+                  authTokenEnabled:
+                    type: boolean
+                    description: "Require auth token for connections"
+                    default: true
+
+                  # Snapshot configuration
+                  snapshotRetentionDays:
+                    type: integer
+                    description: "Days to retain snapshots (0 = disabled)"
+                    default: 1
+                    minimum: 0
+                    maximum: 35
+
+                  snapshotWindow:
+                    type: string
+                    description: "Daily snapshot time window (HH:MM-HH:MM)"
+                    default: "03:00-05:00"
+
+                  # Network
+                  networkConfig:
+                    type: object
+                    properties:
+                      vpcId:
+                        type: string
+                        description: "VPC ID (optional)"
+
+                      subnetIds:
+                        type: array
+                        description: "Subnet IDs for cache deployment"
+                        items:
+                          type: string
+
+                      allowedCIDRs:
+                        type: array
+                        description: "CIDR blocks allowed to connect"
+                        items:
+                          type: string
+                        default:
+                          - "10.0.0.0/8"
+
+                  # Provider
+                  provider:
+                    type: string
+                    description: "Cloud provider"
+                    default: aws
+                    enum:
+                      - aws
+                      - gcp
+                      - azure
+
+                  region:
+                    type: string
+                    description: "Cloud region"
+                    default: us-west-2
+
+          status:
+            type: object
+            properties:
+              endpoint:
+                type: string
+              port:
+                type: string
+              clusterState:
+                type: string
+              resourceId:
+                type: string

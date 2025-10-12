@@ -1,0 +1,36 @@
+# ABOUTME: Kyverno configuration patch - enable features and set defaults
+# ABOUTME: Configures automatic policy application and reporting
+
+apiVersion: v1
+kind: ConfigMap
+metadata:
+  name: kyverno
+  namespace: kyverno
+data:
+  # Enable background scanning for existing resources
+  resourceFilters: |
+    [*,kyverno,*]
+    [*,kube-system,*]
+    [*,kube-public,*]
+    [*,kube-node-lease,*]
+    [Event,*,*]
+    [APIService,*,*]
+    [TokenReview,*,*]
+    [SubjectAccessReview,*,*]
+    [SelfSubjectAccessReview,*,*]
+    [Binding,*,*]
+    [ReplicaSet,*,*]
+    [ReportChangeRequest,*,*]
+    [ClusterReportChangeRequest,*,*]
+    [PolicyReport,*,*]
+    [ClusterPolicyReport,*,*]
+
+  # Webhook configurations
+  webhooks: |
+    - namespaceSelector:
+        matchExpressions:
+        - key: kubernetes.io/metadata.name
+          operator: NotIn
+          values:
+            - kyverno
+            - kube-system

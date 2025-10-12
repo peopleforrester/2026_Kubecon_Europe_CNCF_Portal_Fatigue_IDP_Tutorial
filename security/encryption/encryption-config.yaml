@@ -1,0 +1,31 @@
+# ABOUTME: Kubernetes encryption configuration for secrets at rest
+# ABOUTME: Encrypts all secrets stored in etcd using AES-CBC encryption
+
+apiVersion: apiserver.config.k8s.io/v1
+kind: EncryptionConfiguration
+resources:
+  - resources:
+      - secrets
+    providers:
+      # Primary encryption provider - AES-CBC with 256-bit key
+      - aescbc:
+          keys:
+            - name: key1
+              # IMPORTANT: Replace with your own 32-byte base64-encoded secret
+              # Generate with: head -c 32 /dev/urandom | base64
+              secret: REPLACE_ME_WITH_BASE64_32_BYTE_KEY
+      # Identity provider (no encryption) - used for migration
+      - identity: {}
+
+# How this works:
+# 1. New secrets are encrypted with the first provider (aescbc)
+# 2. Existing secrets can be read by any provider (allows migration)
+# 3. The identity provider allows reading old unencrypted secrets
+# 4. After enabling, run: kubectl get secrets --all-namespaces -o json | kubectl replace -f -
+#    This re-encrypts all existing secrets
+
+# Security Notes:
+# - Store the encryption key securely (e.g., AWS KMS, HashiCorp Vault)
+# - Rotate encryption keys regularly (every 90 days)
+# - Never commit the actual encryption key to Git
+# - Back up encryption keys before rotation

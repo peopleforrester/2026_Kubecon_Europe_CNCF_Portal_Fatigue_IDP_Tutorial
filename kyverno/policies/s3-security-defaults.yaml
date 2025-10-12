@@ -1,0 +1,117 @@
+# ABOUTME: S3 security defaults policy - automatically inject security best practices
+# ABOUTME: Ensures encryption, blocked public access, and versioning
+
+apiVersion: kyverno.io/v1
+kind: ClusterPolicy
+metadata:
+  name: s3-security-defaults
+  annotations:
+    policies.kyverno.io/title: S3 Bucket Security Defaults
+    policies.kyverno.io/category: Security
+    policies.kyverno.io/severity: critical
+    policies.kyverno.io/subject: S3Bucket
+    policies.kyverno.io/description: >-
+      Automatically injects security defaults for S3 bucket claims to ensure
+      encryption, blocked public access, and versioning. Prevents the #1 cloud
+      security vulnerability: public S3 buckets.
+spec:
+  background: true
+  validationFailureAction: enforce
+
+  rules:
+    # Rule 1: CRITICAL - Block all public access
+    - name: block-public-access
+      match:
+        any:
+          - resources:
+              kinds:
+                - S3Bucket
+      validate:
+        message: "S3 buckets MUST block all public access (blockPublicAccess: true). Public S3 buckets are a critical security risk."
+        pattern:
+          spec:
+            parameters:
+              blockPublicAccess: true
+
+    # Rule 2: Require encryption
+    - name: require-encryption
+      match:
+        any:
+          - resources:
+              kinds:
+                - S3Bucket
+      validate:
+        message: "S3 buckets must have encryption enabled (AES256 or aws:kms)"
+        pattern:
+          spec:
+            parameters:
+              encryption: "AES256|aws:kms"
+
+    # Rule 3: Inject security defaults
+    - name: inject-security-defaults
+      match:
+        any:
+          - resources:
+              kinds:
+                - S3Bucket
+      mutate:
+        patchStrategicMerge:
+          spec:
+            parameters:
+              # FORCE public access blocking
+              +(blockPublicAccess): true
+
+              # Ensure encryption
+              +(encryption): "AES256"
+
+              # Enable versioning for data protection
+              +(versioning): true
+
+    # Rule 4: Add security labels
+    - name: add-security-labels
+      match:
+        any:
+          - resources:
+              kinds:
+                - S3Bucket
+      mutate:
+        patchStrategicMerge:
+          metadata:
+            labels:
+              +(security.platform.io/public-access): "blocked"
+              +(security.platform.io/encryption): "true"
+              +(security.platform.io/versioning): "enabled"
+              +(policy.kyverno.io/managed): "true"
+
+    # Rule 5: Production buckets require lifecycle policies
+    - name: production-lifecycle-required
+      match:
+        any:
+          - resources:
+              kinds:
+                - S3Bucket
+              namespaces:
+                - production
+      validate:
+        message: "Production S3 buckets must have lifecycle policies enabled (cost optimization)"
+        pattern:
+          spec:
+            parameters:
+              lifecycleRules:
+                enabled: true
+
+    # Rule 6: Inject production compliance labels
+    - name: production-compliance-labels
+      match:
+        any:
+          - resources:
+              kinds:
+                - S3Bucket
+              namespaces:
+                - production
+      mutate:
+        patchStrategicMerge:
+          metadata:
+            labels:
+              +(compliance.platform.io/required): "true"
+              +(compliance.platform.io/soc2): "ready"

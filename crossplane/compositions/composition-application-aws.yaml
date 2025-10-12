@@ -1,0 +1,396 @@
+# ABOUTME: Application Composition for AWS - provisions full application stack
+# ABOUTME: Creates infrastructure dependencies and wires them to Kubernetes deployment
+
+apiVersion: apiextensions.crossplane.io/v1
+kind: Composition
+metadata:
+  name: xapplication.aws.platform.io
+  labels:
+    provider: aws
+    type: application
+  annotations:
+    kubecon.tutorial/description: "Full-stack application provisioning with auto-wired dependencies"
+spec:
+  writeConnectionSecretsToNamespace: crossplane-system
+
+  compositeTypeRef:
+    apiVersion: platform.io/v1alpha1
+    kind: XApplication
+
+  resources:
+    # PostgreSQL Database (conditional on dependencies.database.enabled)
+    - name: database
+      base:
+        apiVersion: platform.io/v1alpha1
+        kind: PostgreSQL
+        spec:
+          parameters:
+            provider: aws
+          writeConnectionSecretToRef:
+            namespace: crossplane-system
+      patches:
+        # Only create if enabled
+        - type: FromCompositeFieldPath
+          fromFieldPath: spec.dependencies.database.enabled
+          toFieldPath: spec.parameters.enabled
+          policy:
+            fromFieldPath: Required
+
+        # Database configuration
+        - type: FromCompositeFieldPath
+          fromFieldPath: spec.dependencies.database.size
+          toFieldPath: spec.parameters.size
+
+        - type: FromCompositeFieldPath
+          fromFieldPath: spec.dependencies.database.storageGB
+          toFieldPath: spec.parameters.storageGB
+
+        - type: FromCompositeFieldPath
+          fromFieldPath: spec.dependencies.database.highAvailability
+          toFieldPath: spec.parameters.multiAZ
+
+        # Name the database after the application
+        - type: FromCompositeFieldPath
+          fromFieldPath: spec.application.name
+          toFieldPath: metadata.name
+          transforms:
+            - type: string
+              string:
+                fmt: "%s-db"
+
+        # Use same namespace as claim
+        - type: FromCompositeFieldPath
+          fromFieldPath: metadata.labels['crossplane.io/claim-namespace']
+          toFieldPath: metadata.namespace
+
+        # Region
+        - type: FromCompositeFieldPath
+          fromFieldPath: spec.region
+          toFieldPath: spec.parameters.region
+
+        # Secret name
+        - type: FromCompositeFieldPath
+          fromFieldPath: spec.application.name
+          toFieldPath: spec.writeConnectionSecretToRef.name
+          transforms:
+            - type: string
+              string:
+                fmt: "%s-db-connection"
+
+        # Patch status back
+        - type: ToCompositeFieldPath
+          fromFieldPath: status.conditions[?(@.type=='Ready')].status
+          toFieldPath: status.dependencies.database.ready
+
+        - type: ToCompositeFieldPath
+          fromFieldPath: status.atProvider.endpoint
+          toFieldPath: status.dependencies.database.endpoint
+
+    # Redis Cache (conditional on dependencies.cache.enabled)
+    - name: cache
+      base:
+        apiVersion: platform.io/v1alpha1
+        kind: Redis
+        spec:
+          parameters:
+            provider: aws
+            engineVersion: "7.0"
+          writeConnectionSecretToRef:
+            namespace: crossplane-system
+      patches:
+        # Only create if enabled
+        - type: FromCompositeFieldPath
+          fromFieldPath: spec.dependencies.cache.enabled
+          toFieldPath: spec.parameters.enabled
+          policy:
+            fromFieldPath: Required
+
+        # Cache configuration
+        - type: FromCompositeFieldPath
+          fromFieldPath: spec.dependencies.cache.size
+          toFieldPath: spec.parameters.size
+
+        - type: FromCompositeFieldPath
+          fromFieldPath: spec.dependencies.cache.highAvailability
+          toFieldPath: spec.parameters.numNodes
+          transforms:
+            - type: map
+              map:
+                "true": "2"
+                "false": "1"
+
+        - type: FromCompositeFieldPath
+          fromFieldPath: spec.dependencies.cache.highAvailability
+          toFieldPath: spec.parameters.automaticFailover
+
+        # Name the cache after the application
+        - type: FromCompositeFieldPath
+          fromFieldPath: spec.application.name
+          toFieldPath: metadata.name
+          transforms:
+            - type: string
+              string:
+                fmt: "%s-cache"
+
+        # Use same namespace as claim
+        - type: FromCompositeFieldPath
+          fromFieldPath: metadata.labels['crossplane.io/claim-namespace']
+          toFieldPath: metadata.namespace
+
+        # Region
+        - type: FromCompositeFieldPath
+          fromFieldPath: spec.region
+          toFieldPath: spec.parameters.region
+
+        # Secret name
+        - type: FromCompositeFieldPath
+          fromFieldPath: spec.application.name
+          toFieldPath: spec.writeConnectionSecretToRef.name
+          transforms:
+            - type: string
+              string:
+                fmt: "%s-cache-connection"
+
+        # Patch status back
+        - type: ToCompositeFieldPath
+          fromFieldPath: status.conditions[?(@.type=='Ready')].status
+          toFieldPath: status.dependencies.cache.ready
+
+        - type: ToCompositeFieldPath
+          fromFieldPath: status.atProvider.endpoint
+          toFieldPath: status.dependencies.cache.endpoint
+
+    # S3 Storage (conditional on dependencies.storage.enabled)
+    - name: storage
+      base:
+        apiVersion: platform.io/v1alpha1
+        kind: S3Bucket
+        spec:
+          parameters:
+            provider: aws
+            encryption: AES256
+            blockPublicAccess: true
+          writeConnectionSecretToRef:
+            namespace: crossplane-system
+      patches:
+        # Only create if enabled
+        - type: FromCompositeFieldPath
+          fromFieldPath: spec.dependencies.storage.enabled
+          toFieldPath: spec.parameters.enabled
+          policy:
+            fromFieldPath: Required
+
+        # Storage configuration
+        - type: FromCompositeFieldPath
+          fromFieldPath: spec.dependencies.storage.versioning
+          toFieldPath: spec.parameters.versioning
+
+        - type: FromCompositeFieldPath
+          fromFieldPath: spec.dependencies.storage.lifecycle
+          toFieldPath: spec.parameters.lifecycleRules.enabled
+
+        # Name the storage after the application
+        - type: FromCompositeFieldPath
+          fromFieldPath: spec.application.name
+          toFieldPath: metadata.name
+          transforms:
+            - type: string
+              string:
+                fmt: "%s-storage"
+
+        # Use same namespace as claim
+        - type: FromCompositeFieldPath
+          fromFieldPath: metadata.labels['crossplane.io/claim-namespace']
+          toFieldPath: metadata.namespace
+
+        # Region
+        - type: FromCompositeFieldPath
+          fromFieldPath: spec.region
+          toFieldPath: spec.parameters.region
+
+        # Secret name
+        - type: FromCompositeFieldPath
+          fromFieldPath: spec.application.name
+          toFieldPath: spec.writeConnectionSecretToRef.name
+          transforms:
+            - type: string
+              string:
+                fmt: "%s-storage-connection"
+
+        # Patch status back
+        - type: ToCompositeFieldPath
+          fromFieldPath: status.conditions[?(@.type=='Ready')].status
+          toFieldPath: status.dependencies.storage.ready
+
+        - type: ToCompositeFieldPath
+          fromFieldPath: status.atProvider.bucketName
+          toFieldPath: status.dependencies.storage.bucket
+
+    # Kubernetes Deployment (with auto-wired secrets)
+    - name: deployment
+      base:
+        apiVersion: kubernetes.crossplane.io/v1alpha1
+        kind: Object
+        spec:
+          forProvider:
+            manifest:
+              apiVersion: apps/v1
+              kind: Deployment
+              spec:
+                selector:
+                  matchLabels:
+                    app: placeholder
+                template:
+                  metadata:
+                    labels:
+                      app: placeholder
+                  spec:
+                    containers:
+                      - name: app
+                        image: placeholder:latest
+                        ports:
+                          - containerPort: 8080
+                        resources:
+                          requests:
+                            cpu: "100m"
+                            memory: "128Mi"
+                          limits:
+                            cpu: "1000m"
+                            memory: "512Mi"
+                        livenessProbe:
+                          httpGet:
+                            path: /health
+                            port: 8080
+                          initialDelaySeconds: 30
+                          periodSeconds: 10
+                        # Environment variables from secrets (auto-wired)
+                        env: []
+          providerConfigRef:
+            name: kubernetes-provider
+      patches:
+        # Deployment metadata
+        - type: FromCompositeFieldPath
+          fromFieldPath: spec.application.name
+          toFieldPath: spec.forProvider.manifest.metadata.name
+
+        - type: FromCompositeFieldPath
+          fromFieldPath: metadata.labels['crossplane.io/claim-namespace']
+          toFieldPath: spec.forProvider.manifest.metadata.namespace
+
+        - type: FromCompositeFieldPath
+          fromFieldPath: spec.application.name
+          toFieldPath: spec.forProvider.manifest.metadata.labels.app
+
+        # Deployment spec
+        - type: FromCompositeFieldPath
+          fromFieldPath: spec.deployment.replicas
+          toFieldPath: spec.forProvider.manifest.spec.replicas
+
+        - type: FromCompositeFieldPath
+          fromFieldPath: spec.application.name
+          toFieldPath: spec.forProvider.manifest.spec.selector.matchLabels.app
+
+        - type: FromCompositeFieldPath
+          fromFieldPath: spec.application.name
+          toFieldPath: spec.forProvider.manifest.spec.template.metadata.labels.app
+
+        # Container spec
+        - type: FromCompositeFieldPath
+          fromFieldPath: spec.deployment.image
+          toFieldPath: spec.forProvider.manifest.spec.template.spec.containers[0].image
+          transforms:
+            - type: string
+              string:
+                fmt: "%s"
+
+        - type: FromCompositeFieldPath
+          fromFieldPath: spec.deployment.tag
+          toFieldPath: spec.forProvider.manifest.spec.template.spec.containers[0].image
+          transforms:
+            - type: string
+              string:
+                fmt: "%s:%s"
+          policy:
+            fromFieldPath: Optional
+
+        - type: FromCompositeFieldPath
+          fromFieldPath: spec.deployment.port
+          toFieldPath: spec.forProvider.manifest.spec.template.spec.containers[0].ports[0].containerPort
+
+        - type: FromCompositeFieldPath
+          fromFieldPath: spec.deployment.resources.cpu
+          toFieldPath: spec.forProvider.manifest.spec.template.spec.containers[0].resources.requests.cpu
+
+        - type: FromCompositeFieldPath
+          fromFieldPath: spec.deployment.resources.memory
+          toFieldPath: spec.forProvider.manifest.spec.template.spec.containers[0].resources.requests.memory
+
+        # Health check
+        - type: FromCompositeFieldPath
+          fromFieldPath: spec.deployment.healthCheck.path
+          toFieldPath: spec.forProvider.manifest.spec.template.spec.containers[0].livenessProbe.httpGet.path
+
+        - type: FromCompositeFieldPath
+          fromFieldPath: spec.deployment.healthCheck.initialDelaySeconds
+          toFieldPath: spec.forProvider.manifest.spec.template.spec.containers[0].livenessProbe.initialDelaySeconds
+
+    # Kubernetes Service
+    - name: service
+      base:
+        apiVersion: kubernetes.crossplane.io/v1alpha1
+        kind: Object
+        spec:
+          forProvider:
+            manifest:
+              apiVersion: v1
+              kind: Service
+              spec:
+                type: ClusterIP
+                selector:
+                  app: placeholder
+                ports:
+                  - port: 80
+                    targetPort: 8080
+                    protocol: TCP
+          providerConfigRef:
+            name: kubernetes-provider
+      patches:
+        # Only create if enabled
+        - type: FromCompositeFieldPath
+          fromFieldPath: spec.service.enabled
+          toFieldPath: spec.forProvider.manifest.enabled
+          policy:
+            fromFieldPath: Required
+
+        # Service metadata
+        - type: FromCompositeFieldPath
+          fromFieldPath: spec.application.name
+          toFieldPath: spec.forProvider.manifest.metadata.name
+
+        - type: FromCompositeFieldPath
+          fromFieldPath: metadata.labels['crossplane.io/claim-namespace']
+          toFieldPath: spec.forProvider.manifest.metadata.namespace
+
+        # Service spec
+        - type: FromCompositeFieldPath
+          fromFieldPath: spec.service.type
+          toFieldPath: spec.forProvider.manifest.spec.type
+
+        - type: FromCompositeFieldPath
+          fromFieldPath: spec.application.name
+          toFieldPath: spec.forProvider.manifest.spec.selector.app
+
+        - type: FromCompositeFieldPath
+          fromFieldPath: spec.deployment.port
+          toFieldPath: spec.forProvider.manifest.spec.ports[0].targetPort
+
+        # Patch service URL to status
+        - type: CombineFromComposite
+          combine:
+            variables:
+              - fromFieldPath: spec.application.name
+              - fromFieldPath: metadata.labels['crossplane.io/claim-namespace']
+            strategy: string
+            string:
+              fmt: "http://%s.%s.svc.cluster.local"
+          toFieldPath: status.access.serviceUrl

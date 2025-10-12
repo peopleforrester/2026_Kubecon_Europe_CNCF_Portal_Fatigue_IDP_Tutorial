@@ -1,0 +1,77 @@
+# ABOUTME: AWS provider configuration using Upbound granular providers
+# ABOUTME: Installs S3, RDS, EC2, and ElastiCache providers for infrastructure provisioning
+
+---
+# AWS S3 Provider - for bucket provisioning
+apiVersion: pkg.crossplane.io/v1
+kind: Provider
+metadata:
+  name: provider-aws-s3
+  annotations:
+    kubecon.tutorial/description: "AWS S3 provider for object storage"
+spec:
+  package: xpkg.upbound.io/upbound/provider-aws-s3:v1.2.0
+  packagePullPolicy: IfNotPresent
+  revisionActivationPolicy: Automatic
+  revisionHistoryLimit: 1
+
+---
+# AWS RDS Provider - for database provisioning
+apiVersion: pkg.crossplane.io/v1
+kind: Provider
+metadata:
+  name: provider-aws-rds
+  annotations:
+    kubecon.tutorial/description: "AWS RDS provider for relational databases"
+spec:
+  package: xpkg.upbound.io/upbound/provider-aws-rds:v1.2.0
+  packagePullPolicy: IfNotPresent
+  revisionActivationPolicy: Automatic
+  revisionHistoryLimit: 1
+
+---
+# AWS EC2 Provider - for networking and security groups
+apiVersion: pkg.crossplane.io/v1
+kind: Provider
+metadata:
+  name: provider-aws-ec2
+  annotations:
+    kubecon.tutorial/description: "AWS EC2 provider for VPC and networking"
+spec:
+  package: xpkg.upbound.io/upbound/provider-aws-ec2:v1.2.0
+  packagePullPolicy: IfNotPresent
+  revisionActivationPolicy: Automatic
+  revisionHistoryLimit: 1
+
+---
+# AWS ElastiCache Provider - for Redis/Memcached provisioning
+apiVersion: pkg.crossplane.io/v1
+kind: Provider
+metadata:
+  name: provider-aws-elasticache
+  annotations:
+    kubecon.tutorial/description: "AWS ElastiCache provider for Redis clusters"
+spec:
+  package: xpkg.upbound.io/upbound/provider-aws-elasticache:v1.2.0
+  packagePullPolicy: IfNotPresent
+  revisionActivationPolicy: Automatic
+  revisionHistoryLimit: 1
+
+---
+# ProviderConfig for AWS
+# NOTE: This requires AWS credentials to be created as a secret
+# See: crossplane/providers/aws-credentials-template.yaml
+apiVersion: aws.upbound.io/v1beta1
+kind: ProviderConfig
+metadata:
+  name: default
+  annotations:
+    kubecon.tutorial/description: "Default AWS provider configuration"
+    kubecon.tutorial/setup-required: "Create aws-credentials secret before applying"
+spec:
+  credentials:
+    source: Secret
+    secretRef:
+      namespace: crossplane-system
+      name: aws-credentials
+      key: credentials

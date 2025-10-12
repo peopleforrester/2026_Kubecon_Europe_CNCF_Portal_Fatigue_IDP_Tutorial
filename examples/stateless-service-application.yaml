@@ -1,0 +1,135 @@
+# ABOUTME: Stateless service with no infrastructure dependencies
+# ABOUTME: Shows Application CRD works for simple deployments too
+
+apiVersion: platform.io/v1alpha1
+kind: Application
+metadata:
+  name: api-gateway
+  namespace: production
+  labels:
+    app: api-gateway
+    team: platform
+    tier: enterprise
+  annotations:
+    description: "API Gateway - routes to backend services"
+spec:
+  # Application metadata
+  application:
+    name: api-gateway
+    team: platform-team
+    tier: enterprise
+
+  # No infrastructure dependencies (stateless service)
+  dependencies:
+    database:
+      enabled: false
+    cache:
+      enabled: false
+    storage:
+      enabled: false
+
+  # Deployment configuration
+  deployment:
+    image: mycompany/api-gateway
+    tag: v3.5.2
+    replicas: 5
+    port: 8080
+
+    resources:
+      cpu: "1000m"
+      memory: "1Gi"
+
+    healthCheck:
+      enabled: true
+      path: /healthz
+      initialDelaySeconds: 20
+
+    # Aggressive auto-scaling for gateway
+    autoscaling:
+      enabled: true
+      minReplicas: 5
+      maxReplicas: 50
+      targetCPU: 70
+
+    # Configuration via env vars
+    env:
+      - name: ENVIRONMENT
+        value: "production"
+      - name: LOG_FORMAT
+        value: "json"
+      - name: METRICS_ENABLED
+        value: "true"
+      - name: TRACING_ENABLED
+        value: "true"
+      - name: RATE_LIMIT_GLOBAL
+        value: "10000"
+      - name: TIMEOUT_SECONDS
+        value: "30"
+
+  # Service configuration
+  service:
+    enabled: true
+    type: LoadBalancer
+    annotations:
+      service.beta.kubernetes.io/aws-load-balancer-type: "nlb"
+      service.beta.kubernetes.io/aws-load-balancer-cross-zone-load-balancing-enabled: "true"
+
+  # Public ingress with TLS
+  ingress:
+    enabled: true
+    host: api.example.com
+    tls: true
+    annotations:
+      cert-manager.io/cluster-issuer: "letsencrypt-prod"
+      nginx.ingress.kubernetes.io/ssl-redirect: "true"
+      nginx.ingress.kubernetes.io/rate-limit: "100"
+      nginx.ingress.kubernetes.io/proxy-body-size: "10m"
+
+  # Cloud configuration
+  provider: aws
+  region: us-west-2
+
+---
+# What this creates:
+#
+# 1. NO Infrastructure Dependencies
+#    - No database (stateless)
+#    - No cache (stateless)
+#    - No object storage (routes requests only)
+#
+# 2. Kubernetes Deployment
+#    - Name: api-gateway
+#    - Replicas: 5 (scales 5-50 based on CPU)
+#    - Image: mycompany/api-gateway:v3.5.2
+#    - Resources: 1 CPU, 1GB RAM per pod
+#    - Environment: All config via env vars (no secrets)
+#
+# 3. Kubernetes Service (LoadBalancer)
+#    - Name: api-gateway
+#    - Type: LoadBalancer (AWS NLB)
+#    - Cross-zone load balancing enabled
+#
+# 4. Ingress (Public with TLS)
+#    - Host: api.example.com
+#    - TLS: Let's Encrypt certificate
+#    - Rate limiting: 100 req/s
+#    - Max body size: 10MB
+#
+# Provisioning time: ~2 minutes (no infrastructure to provision)
+# Total cost: ~$15-50/month (just load balancer, scales with traffic)
+#
+# Use case: API Gateway
+#   - Routes traffic to backend services
+#   - No state (all data in downstream services)
+#   - High availability (5-50 replicas)
+#   - Public internet facing
+#
+# Access:
+#   Public: https://api.example.com
+#   Internal: http://api-gateway.production.svc.cluster.local
+#
+# Performance:
+#   - Handles 10,000 req/s globally
+#   - Scales automatically based on load
+#   - 30s timeout per request
+#   - Full observability (metrics + tracing)

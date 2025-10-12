@@ -1,0 +1,122 @@
+# ABOUTME: PostgreSQL security defaults policy - automatically inject security best practices
+# ABOUTME: Ensures encryption, private access, and proper backup configuration
+
+apiVersion: kyverno.io/v1
+kind: ClusterPolicy
+metadata:
+  name: postgres-security-defaults
+  annotations:
+    policies.kyverno.io/title: PostgreSQL Security Defaults
+    policies.kyverno.io/category: Security
+    policies.kyverno.io/severity: high
+    policies.kyverno.io/subject: PostgreSQL
+    policies.kyverno.io/description: >-
+      Automatically injects security defaults for PostgreSQL claims to ensure
+      encryption, private access, and proper backup configuration. This prevents
+      developers from accidentally creating insecure databases.
+spec:
+  # Run in background for existing resources
+  background: true
+
+  # Validation failure action
+  validationFailureAction: enforce
+
+  rules:
+    # Rule 1: Ensure encryption is always enabled
+    - name: require-encryption
+      match:
+        any:
+          - resources:
+              kinds:
+                - PostgreSQL
+      validate:
+        message: "PostgreSQL must have encryption enabled (encryption at rest and in transit)"
+        pattern:
+          spec:
+            parameters:
+              # Encryption will be added by mutation if missing
+              # This validates it's present
+              =(encryptionAtRest): true
+
+    # Rule 2: Block public access
+    - name: block-public-access
+      match:
+        any:
+          - resources:
+              kinds:
+                - PostgreSQL
+      validate:
+        message: "PostgreSQL databases must NOT be publicly accessible (security violation)"
+        pattern:
+          spec:
+            parameters:
+              networkConfig:
+                publiclyAccessible: false
+
+    # Rule 3: Ensure backup retention
+    - name: require-backups
+      match:
+        any:
+          - resources:
+              kinds:
+                - PostgreSQL
+      validate:
+        message: "PostgreSQL must have automated backups configured (minimum 1 day retention)"
+        pattern:
+          spec:
+            parameters:
+              backupRetentionDays: ">0"
+
+    # Rule 4: Inject encryption defaults if missing
+    - name: inject-encryption-defaults
+      match:
+        any:
+          - resources:
+              kinds:
+                - PostgreSQL
+      mutate:
+        patchStrategicMerge:
+          spec:
+            parameters:
+              # Add encryption if not specified
+              +(encryptionAtRest): true
+              +(encryptionInTransit): true
+
+              # Ensure private access
+              networkConfig:
+                +(publiclyAccessible): false
+
+              # Ensure backup retention (minimum 1 day)
+              +(backupRetentionDays): 7
+
+    # Rule 5: Add security labels
+    - name: add-security-labels
+      match:
+        any:
+          - resources:
+              kinds:
+                - PostgreSQL
+      mutate:
+        patchStrategicMerge:
+          metadata:
+            labels:
+              +(security.platform.io/encryption): "true"
+              +(security.platform.io/private-access): "true"
+              +(security.platform.io/backups): "enabled"
+              +(policy.kyverno.io/managed): "true"
+
+    # Rule 6: Validate allowed CIDRs (prevent 0.0.0.0/0)
+    - name: validate-allowed-cidrs
+      match:
+        any:
+          - resources:
+              kinds:
+                - PostgreSQL
+      validate:
+        message: "PostgreSQL cannot allow access from 0.0.0.0/0 (public internet)"
+        deny:
+          conditions:
+            any:
+              - key: "{{ request.object.spec.parameters.networkConfig.allowedCIDRs[] }}"
+                operator: Equals
+                value: "0.0.0.0/0"

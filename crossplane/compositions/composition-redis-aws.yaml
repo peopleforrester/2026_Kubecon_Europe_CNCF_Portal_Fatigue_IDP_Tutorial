@@ -1,0 +1,225 @@
+# ABOUTME: Redis Composition for AWS ElastiCache - converts abstract request to AWS resources
+# ABOUTME: Creates ElastiCache Replication Group with proper networking and security
+
+apiVersion: apiextensions.crossplane.io/v1
+kind: Composition
+metadata:
+  name: xredis.aws.platform.io
+  labels:
+    provider: aws
+    service: elasticache
+    cache: redis
+  annotations:
+    kubecon.tutorial/description: "AWS ElastiCache Redis composition"
+    kubecon.tutorial/cost-warning: "Creates billable AWS resources"
+spec:
+  compositeTypeRef:
+    apiVersion: platform.io/v1alpha1
+    kind: XRedis
+
+  mode: Resources
+
+  resources:
+    # Cache Subnet Group
+    - name: cache-subnet-group
+      base:
+        apiVersion: elasticache.aws.upbound.io/v1beta1
+        kind: SubnetGroup
+        spec:
+          forProvider:
+            region: us-west-2
+            description: "Subnet group for Redis cache"
+
+      patches:
+        - type: FromCompositeFieldPath
+          fromFieldPath: spec.parameters.region
+          toFieldPath: spec.forProvider.region
+
+        - type: FromCompositeFieldPath
+          fromFieldPath: metadata.uid
+          toFieldPath: metadata.name
+          transforms:
+            - type: string
+              string:
+                fmt: "%s-subnet-group"
+
+    # Security Group for cache access
+    - name: cache-security-group
+      base:
+        apiVersion: ec2.aws.upbound.io/v1beta1
+        kind: SecurityGroup
+        spec:
+          forProvider:
+            region: us-west-2
+            description: "Security group for Redis cache"
+            vpcId: vpc-default
+
+      patches:
+        - type: FromCompositeFieldPath
+          fromFieldPath: spec.parameters.region
+          toFieldPath: spec.forProvider.region
+
+        - type: FromCompositeFieldPath
+          fromFieldPath: spec.parameters.networkConfig.vpcId
+          toFieldPath: spec.forProvider.vpcId
+          policy:
+            fromFieldPath: Optional
+
+        - type: FromCompositeFieldPath
+          fromFieldPath: metadata.uid
+          toFieldPath: metadata.name
+          transforms:
+            - type: string
+              string:
+                fmt: "%s-cache-sg"
+
+    # Security Group Rule - allow Redis access
+    - name: cache-sg-rule
+      base:
+        apiVersion: ec2.aws.upbound.io/v1beta1
+        kind: SecurityGroupRule
+        spec:
+          forProvider:
+            region: us-west-2
+            type: ingress
+            fromPort: 6379
+            toPort: 6379
+            protocol: tcp
+            cidrBlocks:
+              - "10.0.0.0/8"
+            securityGroupIdSelector:
+              matchControllerRef: true
+
+      patches:
+        - type: FromCompositeFieldPath
+          fromFieldPath: spec.parameters.region
+          toFieldPath: spec.forProvider.region
+
+        - type: FromCompositeFieldPath
+          fromFieldPath: spec.parameters.networkConfig.allowedCIDRs
+          toFieldPath: spec.forProvider.cidrBlocks
+          policy:
+            fromFieldPath: Optional
+
+    # ElastiCache Replication Group
+    - name: redis-replication-group
+      base:
+        apiVersion: elasticache.aws.upbound.io/v1beta1
+        kind: ReplicationGroup
+        spec:
+          forProvider:
+            region: us-west-2
+            engine: redis
+            engineVersion: "7.0"
+            nodeType: cache.t3.micro
+            numberCacheClusters: 1
+            port: 6379
+
+            # Security
+            atRestEncryptionEnabled: true
+            transitEncryptionEnabled: true
+            authTokenSecretRef:
+              name: redis-auth-token
+              namespace: crossplane-system
+              key: token
+
+            # Automatic failover (requires 2+ nodes)
+            automaticFailoverEnabled: false
+            multiAzEnabled: false
+
+            # Snapshots
+            snapshotRetentionLimit: 1
+            snapshotWindow: "03:00-05:00"
+
+            # Maintenance
+            preferredMaintenanceWindow: "sun:05:00-sun:06:00"
+            autoMinorVersionUpgrade: true
+
+            # Description
+            description: "Redis cache for application"
+
+          writeConnectionSecretToRef:
+            namespace: crossplane-system
+            name: redis-conn
+
+      patches:
+        # Basic configuration
+        - type: FromCompositeFieldPath
+          fromFieldPath: spec.parameters.region
+          toFieldPath: spec.forProvider.region
+
+        - type: FromCompositeFieldPath
+          fromFieldPath: spec.parameters.engineVersion
+          toFieldPath: spec.forProvider.engineVersion
+
+        # Size-based node type mapping
+        - type: FromCompositeFieldPath
+          fromFieldPath: spec.parameters.size
+          toFieldPath: spec.forProvider.nodeType
+          transforms:
+            - type: map
+              map:
+                small: cache.t3.micro
+                medium: cache.t3.small
+                large: cache.t3.medium
+
+        # Number of nodes
+        - type: FromCompositeFieldPath
+          fromFieldPath: spec.parameters.numNodes
+          toFieldPath: spec.forProvider.numberCacheClusters
+
+        # Automatic failover (requires 2+ nodes)
+        - type: FromCompositeFieldPath
+          fromFieldPath: spec.parameters.automaticFailover
+          toFieldPath: spec.forProvider.automaticFailoverEnabled
+
+        # Multi-AZ (automatically enabled with failover)
+        - type: FromCompositeFieldPath
+          fromFieldPath: spec.parameters.automaticFailover
+          toFieldPath: spec.forProvider.multiAzEnabled
+
+        # Encryption
+        - type: FromCompositeFieldPath
+          fromFieldPath: spec.parameters.transitEncryption
+          toFieldPath: spec.forProvider.transitEncryptionEnabled
+
+        - type: FromCompositeFieldPath
+          fromFieldPath: spec.parameters.atRestEncryption
+          toFieldPath: spec.forProvider.atRestEncryptionEnabled
+
+        # Snapshots
+        - type: FromCompositeFieldPath
+          fromFieldPath: spec.parameters.snapshotRetentionDays
+          toFieldPath: spec.forProvider.snapshotRetentionLimit
+
+        - type: FromCompositeFieldPath
+          fromFieldPath: spec.parameters.snapshotWindow
+          toFieldPath: spec.forProvider.snapshotWindow
+
+        # Generate unique replication group ID
+        - type: FromCompositeFieldPath
+          fromFieldPath: metadata.uid
+          toFieldPath: spec.forProvider.replicationGroupId
+          transforms:
+            - type: string
+              string:
+                fmt: "redis-%s"
+                type: Format
+
+        # Connection secret name
+        - type: FromCompositeFieldPath
+          fromFieldPath: metadata.uid
+          toFieldPath: spec.writeConnectionSecretToRef.name
+          transforms:
+            - type: string
+              string:
+                fmt: "%s-redis"
+
+      connectionDetails:
+        - name: endpoint
+          fromConnectionSecretKey: primary_endpoint_address
+        - name: port
+          type: FromValue
+          value: "6379"
+        - name: auth-token
+          fromConnectionSecretKey: auth_token

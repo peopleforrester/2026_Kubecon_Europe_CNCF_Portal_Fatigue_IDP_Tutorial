@@ -1,0 +1,108 @@
+# ABOUTME: Simple API application with PostgreSQL database
+# ABOUTME: Demonstrates one-resource full-stack provisioning
+
+apiVersion: platform.io/v1alpha1
+kind: Application
+metadata:
+  name: simple-api
+  namespace: dev
+  labels:
+    app: simple-api
+    team: backend
+    tier: standard
+  annotations:
+    description: "Simple REST API with PostgreSQL backend"
+spec:
+  # Application metadata
+  application:
+    name: simple-api
+    team: backend-team
+    tier: standard
+
+  # Infrastructure dependencies
+  dependencies:
+    # Enable PostgreSQL database
+    database:
+      enabled: true
+      type: postgres
+      size: small
+      storageGB: 20
+      highAvailability: false  # Dev doesn't need HA
+
+    # No cache needed for simple API
+    cache:
+      enabled: false
+
+    # No object storage needed
+    storage:
+      enabled: false
+
+  # Deployment configuration
+  deployment:
+    image: mycompany/simple-api
+    tag: v1.0.0
+    replicas: 2
+    port: 8080
+
+    resources:
+      cpu: "200m"
+      memory: "256Mi"
+
+    healthCheck:
+      enabled: true
+      path: /health
+      initialDelaySeconds: 30
+
+    # Non-secret environment variables
+    env:
+      - name: LOG_LEVEL
+        value: "info"
+      - name: API_VERSION
+        value: "v1"
+
+  # Service configuration
+  service:
+    enabled: true
+    type: ClusterIP
+
+  # No ingress for dev
+  ingress:
+    enabled: false
+
+  # Cloud configuration
+  provider: aws
+  region: us-west-2
+
+---
+# What this creates automatically:
+#
+# 1. PostgreSQL Database
+#    - Name: simple-api-db
+#    - Size: small (db.t3.micro ~$15/mo)
+#    - Storage: 20GB
+#    - Connection secret: simple-api-db-connection
+#
+# 2. Kubernetes Deployment
+#    - Name: simple-api
+#    - Replicas: 2
+#    - Image: mycompany/simple-api:v1.0.0
+#    - Environment variables auto-wired from connection secret:
+#      * DB_HOST (from simple-api-db-connection)
+#      * DB_PORT (from simple-api-db-connection)
+#      * DB_USER (from simple-api-db-connection)
+#      * DB_PASSWORD (from simple-api-db-connection)
+#      * DB_NAME (from simple-api-db-connection)
+#    - Custom env vars: LOG_LEVEL, API_VERSION
+#
+# 3. Kubernetes Service
+#    - Name: simple-api
+#    - Type: ClusterIP
+#    - Port: 80 → 8080
+#
+# Total time: ~8 minutes (RDS provisioning)
+# Total cost: ~$15/month (database only)
+#
+# Access:
+#   kubectl get application simple-api -n dev
+#   kubectl get pods -l app=simple-api -n dev
+#   kubectl logs -l app=simple-api -n dev

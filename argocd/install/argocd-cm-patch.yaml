@@ -1,0 +1,63 @@
+# ABOUTME: ArgoCD ConfigMap patch for platform configuration
+# ABOUTME: Enables app-of-apps pattern and configures resource tracking
+
+apiVersion: v1
+kind: ConfigMap
+metadata:
+  name: argocd-cm
+  namespace: argocd
+  labels:
+    app.kubernetes.io/name: argocd-cm
+    app.kubernetes.io/part-of: argocd
+data:
+  # Security: Disable anonymous access
+  users.anonymous.enabled: "false"
+
+  # Enable app-of-apps pattern for platform bootstrapping
+  application.instanceLabelKey: argocd.argoproj.io/instance
+
+  # Configure repository credentials timeout
+  timeout.reconciliation: 180s
+
+  # Enable resource tracking for better observability
+  application.resourceTrackingMethod: annotation
+
+  # Configure diff options for better change detection
+  resource.customizations.ignoreDifferences.all: |
+    jqPathExpressions:
+    - .metadata.resourceVersion
+    - .metadata.generation
+    - .metadata.managedFields
+
+  # Repository server configuration
+  repositories: |
+    - url: https://github.com/argoproj/argo-cd.git
+    - url: https://github.com/crossplane/crossplane.git
+
+  # Kustomize build options
+  kustomize.buildOptions: --load-restrictor LoadRestrictionsNone --enable-helm
+
+  # Health assessment for custom resources
+  resource.customizations.health.argoproj.io_Application: |
+    hs = {}
+    hs.status = "Progressing"
+    hs.message = ""
+    if obj.status ~= nil then
+      if obj.status.health ~= nil then
+        hs.status = obj.status.health.status
+        if obj.status.health.message ~= nil then
+          hs.message = obj.status.health.message
+        end
+      end
+    end
+    return hs
+
+  # Enable ApplicationSet controller
+  applicationset.enable: "true"
+
+  # Server URL (will be updated during setup)
+  url: https://argocd.local
+
+  # Dex configuration (disabled for tutorial simplicity)
+  dex.config: |
+    connectors: []

@@ -1,0 +1,78 @@
+# ABOUTME: GCP provider configuration using Upbound granular providers
+# ABOUTME: Installs Storage, SQL, and Compute providers for infrastructure provisioning
+
+---
+# GCP Storage Provider - for bucket provisioning
+apiVersion: pkg.crossplane.io/v1
+kind: Provider
+metadata:
+  name: provider-gcp-storage
+  annotations:
+    kubecon.tutorial/description: "GCP Storage provider for object storage"
+spec:
+  package: xpkg.upbound.io/upbound/provider-gcp-storage:v1.2.0
+  packagePullPolicy: IfNotPresent
+  revisionActivationPolicy: Automatic
+  revisionHistoryLimit: 1
+
+---
+# GCP SQL Provider - for Cloud SQL database provisioning
+apiVersion: pkg.crossplane.io/v1
+kind: Provider
+metadata:
+  name: provider-gcp-sql
+  annotations:
+    kubecon.tutorial/description: "GCP SQL provider for Cloud SQL databases"
+spec:
+  package: xpkg.upbound.io/upbound/provider-gcp-sql:v1.2.0
+  packagePullPolicy: IfNotPresent
+  revisionActivationPolicy: Automatic
+  revisionHistoryLimit: 1
+
+---
+# GCP Compute Provider - for VPC and networking
+apiVersion: pkg.crossplane.io/v1
+kind: Provider
+metadata:
+  name: provider-gcp-compute
+  annotations:
+    kubecon.tutorial/description: "GCP Compute provider for VPC and networking"
+spec:
+  package: xpkg.upbound.io/upbound/provider-gcp-compute:v1.2.0
+  packagePullPolicy: IfNotPresent
+  revisionActivationPolicy: Automatic
+  revisionHistoryLimit: 1
+
+---
+# GCP Redis Provider - for Memorystore Redis provisioning
+apiVersion: pkg.crossplane.io/v1
+kind: Provider
+metadata:
+  name: provider-gcp-redis
+  annotations:
+    kubecon.tutorial/description: "GCP Redis provider for Memorystore"
+spec:
+  package: xpkg.upbound.io/upbound/provider-gcp-redis:v1.2.0
+  packagePullPolicy: IfNotPresent
+  revisionActivationPolicy: Automatic
+  revisionHistoryLimit: 1
+
+---
+# ProviderConfig for GCP
+# NOTE: This requires GCP service account credentials as a secret
+# See: crossplane/providers/gcp-credentials-template.yaml
+apiVersion: gcp.upbound.io/v1beta1
+kind: ProviderConfig
+metadata:
+  name: default
+  annotations:
+    kubecon.tutorial/description: "Default GCP provider configuration"
+    kubecon.tutorial/setup-required: "Create gcp-credentials secret before applying"
+spec:
+  projectID: YOUR_GCP_PROJECT_ID  # Replace with actual project ID
+  credentials:
+    source: Secret
+    secretRef:
+      namespace: crossplane-system
+      name: gcp-credentials
+      key: credentials

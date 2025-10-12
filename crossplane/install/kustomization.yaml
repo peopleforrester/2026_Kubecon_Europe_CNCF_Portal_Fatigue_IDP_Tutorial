@@ -1,0 +1,44 @@
+# ABOUTME: Crossplane installation using Kustomize with composition functions enabled
+# ABOUTME: Uses Crossplane v1.16.0 (latest stable as of Oct 2025) - CNCF Incubating project
+
+apiVersion: kustomize.config.k8s.io/v1beta1
+kind: Kustomization
+
+namespace: crossplane-system
+
+resources:
+  # Crossplane v1.16.0 - CNCF Incubating project (Sep 2021)
+  # Graduation proposal submitted February 2024
+  - https://raw.githubusercontent.com/crossplane/crossplane/v1.16.0/cluster/crds/crossplane.yaml
+  - https://raw.githubusercontent.com/crossplane/crossplane/v1.16.0/cluster/deployment/deployment.yaml
+
+# Namespace for Crossplane system
+namespace: crossplane-system
+
+# Configuration patches for Crossplane deployment
+patchesStrategicMerge:
+  - crossplane-deployment-patch.yaml
+
+# ConfigMap for Crossplane feature flags
+configMapGenerator:
+  - name: crossplane-config
+    literals:
+      # Enable Composition Functions (Python/Go functions for complex logic)
+      - enable-composition-functions=true
+      # Enable Environment Configs (environment-specific configuration)
+      - enable-environment-configs=true
+      # Enable alpha features for tutorial (use with caution in production)
+      - enable-alpha-features=false
+
+# Labels for resource tracking
+commonLabels:
+  app.kubernetes.io/part-of: backend-first-idp
+  app.kubernetes.io/component: infrastructure-provisioning
+  managed-by: kustomize
+  tutorial: kubecon-eu-2026
+
+# Annotations for documentation
+commonAnnotations:
+  kubecon.tutorial/phase: "1-infrastructure-control-plane"
+  kubecon.tutorial/component: "crossplane-core"
+  documentation: "https://github.com/[YOUR-ORG]/backend-first-idp"

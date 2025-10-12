@@ -1,0 +1,96 @@
+# ABOUTME: Multi-environment ApplicationSet for GitOps-based infrastructure promotion
+# ABOUTME: Automatically creates Applications for dev, staging, and production environments
+
+apiVersion: argoproj.io/v1alpha1
+kind: ApplicationSet
+metadata:
+  name: multi-env-infrastructure
+  namespace: argocd
+  annotations:
+    argocd.argoproj.io/sync-wave: "2"
+    kubecon.tutorial/description: "Multi-environment promotion for Crossplane claims"
+spec:
+  # Git directory generator - scans environments/* directories
+  generators:
+  - git:
+      repoURL: https://github.com/[YOUR-ORG]/backend-first-idp
+      revision: main
+      directories:
+      - path: environments/*
+      # Optionally exclude specific environments
+      # - path: environments/dev
+      #   exclude: true
+
+  # Template for creating Applications
+  template:
+    metadata:
+      # Name format: {environment}-infrastructure
+      name: '{{path.basename}}-infrastructure'
+      namespace: argocd
+      labels:
+        environment: '{{path.basename}}'
+        managed-by: applicationset
+        app.kubernetes.io/part-of: backend-first-idp
+      annotations:
+        kubecon.tutorial/environment: '{{path.basename}}'
+        kubecon.tutorial/path: '{{path}}'
+
+    spec:
+      project: default
+
+      # Source: Environment-specific directory
+      source:
+        repoURL: https://github.com/[YOUR-ORG]/backend-first-idp
+        targetRevision: main
+        path: '{{path}}'
+
+        # Recurse into subdirectories
+        directory:
+          recurse: true
+          include: '*.yaml'
+          include: '*.yml'
+
+      # Destination: Create namespace per environment
+      destination:
+        server: https://kubernetes.default.svc
+        namespace: '{{path.basename}}'
+
+      # Sync policy: Automated for GitOps workflow
+      syncPolicy:
+        automated:
+          prune: true
+          selfHeal: true
+          allowEmpty: false
+
+        syncOptions:
+          - CreateNamespace=true
+          - PrunePropagationPolicy=foreground
+          - RespectIgnoreDifferences=true
+          # Apply resources in order
+          - ApplyOutOfSyncOnly=false
+
+        # Retry on transient failures
+        retry:
+          limit: 5
+          backoff:
+            duration: 5s
+            factor: 2
+            maxDuration: 3m
+
+      # Sync waves for ordering
+      # Crossplane Claims have dependencies
+      syncWaveHook: Skip
+
+      # Ignore differences in Crossplane managed resources
+      ignoreDifferences:
+        - group: "*"
+          kind: "*"
+          jsonPointers:
+            - /status
+            - /metadata/resourceVersion
+            - /metadata/generation
+            - /metadata/managedFields
+
+  # Preserve resources on ApplicationSet deletion
+  # Important for production safety
+  preserveResourcesOnDeletion: true

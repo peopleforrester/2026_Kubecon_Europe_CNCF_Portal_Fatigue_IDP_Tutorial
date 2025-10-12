@@ -1,0 +1,158 @@
+# ABOUTME: Full-stack application with database, cache, and object storage
+# ABOUTME: Demonstrates complete infrastructure provisioning with one resource
+
+apiVersion: platform.io/v1alpha1
+kind: Application
+metadata:
+  name: fullstack-app
+  namespace: staging
+  labels:
+    app: fullstack-app
+    team: platform
+    tier: premium
+  annotations:
+    description: "Full-featured application with complete infrastructure stack"
+spec:
+  # Application metadata
+  application:
+    name: fullstack-app
+    team: platform-team
+    tier: premium
+
+  # All infrastructure dependencies enabled
+  dependencies:
+    # PostgreSQL for persistent data
+    database:
+      enabled: true
+      type: postgres
+      size: medium
+      storageGB: 50
+      highAvailability: true  # Staging has HA
+
+    # Redis for caching
+    cache:
+      enabled: true
+      type: redis
+      size: medium
+      highAvailability: true  # 2 nodes with auto-failover
+
+    # S3 for file uploads
+    storage:
+      enabled: true
+      type: s3
+      versioning: true
+      lifecycle: true  # Cost optimization
+
+  # Deployment configuration
+  deployment:
+    image: mycompany/fullstack-app
+    tag: v2.1.0
+    replicas: 3
+    port: 3000
+
+    resources:
+      cpu: "500m"
+      memory: "512Mi"
+
+    healthCheck:
+      enabled: true
+      path: /api/health
+      initialDelaySeconds: 45
+
+    # Auto-scaling enabled
+    autoscaling:
+      enabled: true
+      minReplicas: 3
+      maxReplicas: 10
+      targetCPU: 75
+
+    # Custom environment variables
+    env:
+      - name: NODE_ENV
+        value: "staging"
+      - name: LOG_LEVEL
+        value: "debug"
+      - name: FEATURE_FLAGS
+        value: "new-ui,beta-api"
+      - name: MAX_UPLOAD_SIZE
+        value: "10485760"  # 10MB
+
+  # Service configuration
+  service:
+    enabled: true
+    type: LoadBalancer
+    annotations:
+      service.beta.kubernetes.io/aws-load-balancer-type: "nlb"
+
+  # Ingress enabled with TLS
+  ingress:
+    enabled: true
+    host: fullstack-staging.example.com
+    tls: true
+    annotations:
+      cert-manager.io/cluster-issuer: "letsencrypt-prod"
+      nginx.ingress.kubernetes.io/ssl-redirect: "true"
+
+  # Cloud configuration
+  provider: aws
+  region: us-west-2
+
+---
+# What this creates automatically:
+#
+# 1. PostgreSQL Database (Multi-AZ)
+#    - Name: fullstack-app-db
+#    - Size: medium (db.t3.small ~$60/mo with Multi-AZ)
+#    - Storage: 50GB
+#    - High Availability: 2 AZs with automatic failover
+#    - Connection secret: fullstack-app-db-connection
+#
+# 2. Redis Cache Cluster
+#    - Name: fullstack-app-cache
+#    - Size: medium (cache.t3.small ~$50/mo for 2 nodes)
+#    - Nodes: 2 with automatic failover
+#    - Encryption: Transit and at-rest
+#    - Connection secret: fullstack-app-cache-connection
+#
+# 3. S3 Bucket
+#    - Name: fullstack-app-storage
+#    - Versioning: enabled
+#    - Lifecycle: IA after 30d, Glacier after 90d
+#    - Encryption: AES256
+#    - Connection secret: fullstack-app-storage-connection
+#
+# 4. Kubernetes Deployment
+#    - Name: fullstack-app
+#    - Replicas: 3 (scales 3-10 based on CPU)
+#    - Image: mycompany/fullstack-app:v2.1.0
+#    - Auto-wired environment variables:
+#      * DB_HOST, DB_PORT, DB_USER, DB_PASSWORD, DB_NAME
+#      * REDIS_HOST, REDIS_PORT, REDIS_AUTH_TOKEN
+#      * S3_BUCKET, S3_REGION, S3_ENDPOINT
+#      * NODE_ENV, LOG_LEVEL, FEATURE_FLAGS, MAX_UPLOAD_SIZE
+#
+# 5. Kubernetes Service (LoadBalancer)
+#    - Name: fullstack-app
+#    - Type: LoadBalancer (AWS NLB)
+#    - External IP provisioned
+#
+# 6. Ingress (with TLS)
+#    - Host: fullstack-staging.example.com
+#    - TLS Certificate: Let's Encrypt (auto-provisioned)
+#    - SSL Redirect: enabled
+#
+# Total provisioning time: ~10 minutes
+# Total cost estimate: ~$110-125/month
+#   - Database: ~$60/mo (Multi-AZ medium)
+#   - Cache: ~$50/mo (2 nodes medium)
+#   - Storage: ~$3-5/mo (50GB with lifecycle)
+#   - Load Balancer: ~$15/mo
+#
+# Access:
+#   External: https://fullstack-staging.example.com
+#   Internal: http://fullstack-app.staging.svc.cluster.local
+#
+# Monitoring:
+#   kubectl get application fullstack-app -n staging -o yaml
+#   kubectl describe application fullstack-app -n staging
+#   kubectl get all -l app=fullstack-app -n staging
