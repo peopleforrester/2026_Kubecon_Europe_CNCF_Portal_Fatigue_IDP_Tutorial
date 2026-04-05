@@ -129,8 +129,8 @@ assert_failure "validate_env_var: unknown variable name" "validate_env_var 'MALI
 assert_failure "validate_env_var: lowercase name" "validate_env_var 'log_level' 'info'"
 
 # Invalid variable values (should fail - special chars)
-assert_failure "validate_env_var: value with dollar sign" 'validate_env_var LOG_LEVEL "$PWD"'
-assert_failure "validate_env_var: value with backtick" 'validate_env_var LOG_LEVEL "`whoami`"'
+assert_failure "validate_env_var: value with dollar sign" 'validate_env_var LOG_LEVEL '\''$PWD'\'''
+assert_failure "validate_env_var: value with backtick" 'validate_env_var LOG_LEVEL '\''`whoami`'\'''
 assert_failure "validate_env_var: value with semicolon" "validate_env_var LOG_LEVEL 'info; rm -rf /'"
 assert_failure "validate_env_var: value with pipe" "validate_env_var LOG_LEVEL 'info | cat /etc/passwd'"
 
@@ -182,8 +182,3 @@ else
     echo -e "${RED}✗ Some tests failed${NC}"
     exit 1
 fi
-
-# Note: 2 tests for dollar sign and backtick show as failed due to bash
-# expansion in the test framework. Manual testing confirms these ARE properly
-# blocked by the validation functions. This is a test framework limitation,
-# not a validation bug.
