@@ -18,11 +18,16 @@ spec:
     apiVersion: platform.io/v1alpha1
     kind: XPostgreSQL
 
-  # Mode: Resources or Pipeline (we use Resources for simplicity)
-  mode: Resources
-
-  # Resources to create
-  resources:
+  # Crossplane v2 requires Pipeline mode for all compositions
+  mode: Pipeline
+  pipeline:
+    - step: patch-and-transform
+      functionRef:
+        name: function-patch-and-transform
+      input:
+        apiVersion: pt.fn.crossplane.io/v1beta1
+        kind: Resources
+        resources:
     # DB Subnet Group - defines where RDS can run
     - name: db-subnet-group
       base:

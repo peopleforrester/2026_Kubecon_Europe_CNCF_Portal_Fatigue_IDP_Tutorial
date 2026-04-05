@@ -1,0 +1,11 @@
+# ABOUTME: Crossplane function-patch-and-transform for Pipeline composition mode
+# ABOUTME: Required by Crossplane v2 since native patch-and-transform was removed
+
+apiVersion: pkg.crossplane.io/v1beta1
+kind: Function
+metadata:
+  name: function-patch-and-transform
+  annotations:
+    kubecon.tutorial/description: "Patch and transform function for Crossplane v2 Pipeline compositions"
+spec:
+  package: xpkg.upbound.io/crossplane-contrib/function-patch-and-transform:v0.8.0

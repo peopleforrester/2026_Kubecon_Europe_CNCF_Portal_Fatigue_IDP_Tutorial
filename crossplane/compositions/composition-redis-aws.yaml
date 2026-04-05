@@ -17,9 +17,16 @@ spec:
     apiVersion: platform.io/v1alpha1
     kind: XRedis
 
-  mode: Resources
-
-  resources:
+  # Crossplane v2 requires Pipeline mode for all compositions
+  mode: Pipeline
+  pipeline:
+    - step: patch-and-transform
+      functionRef:
+        name: function-patch-and-transform
+      input:
+        apiVersion: pt.fn.crossplane.io/v1beta1
+        kind: Resources
+        resources:
     # Cache Subnet Group
     - name: cache-subnet-group
       base:
