@@ -10,7 +10,7 @@ metadata:
   annotations:
     kubecon.tutorial/description: "AWS S3 provider for object storage"
 spec:
-  package: xpkg.upbound.io/upbound/provider-aws-s3:v1.2.0
+  package: xpkg.upbound.io/upbound/provider-aws-s3:v2.5.1
   packagePullPolicy: IfNotPresent
   revisionActivationPolicy: Automatic
   revisionHistoryLimit: 1
@@ -24,7 +24,7 @@ metadata:
   annotations:
     kubecon.tutorial/description: "AWS RDS provider for relational databases"
 spec:
-  package: xpkg.upbound.io/upbound/provider-aws-rds:v1.2.0
+  package: xpkg.upbound.io/upbound/provider-aws-rds:v2.5.1
   packagePullPolicy: IfNotPresent
   revisionActivationPolicy: Automatic
   revisionHistoryLimit: 1
@@ -38,7 +38,7 @@ metadata:
   annotations:
     kubecon.tutorial/description: "AWS EC2 provider for VPC and networking"
 spec:
-  package: xpkg.upbound.io/upbound/provider-aws-ec2:v1.2.0
+  package: xpkg.upbound.io/upbound/provider-aws-ec2:v2.5.1
   packagePullPolicy: IfNotPresent
   revisionActivationPolicy: Automatic
   revisionHistoryLimit: 1
@@ -52,7 +52,7 @@ metadata:
   annotations:
     kubecon.tutorial/description: "AWS ElastiCache provider for Redis clusters"
 spec:
-  package: xpkg.upbound.io/upbound/provider-aws-elasticache:v1.2.0
+  package: xpkg.upbound.io/upbound/provider-aws-elasticache:v2.5.1
   packagePullPolicy: IfNotPresent
   revisionActivationPolicy: Automatic
   revisionHistoryLimit: 1

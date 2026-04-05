@@ -58,7 +58,7 @@ Build a Backend-First Internal Developer Platform that solves "Portal Fatigue" b
 **Files**: 7 | **Lines**: 455
 
 **Deliverables**:
-- ArgoCD v2.11.0 installation with Kustomize
+- ArgoCD v3.3.6 installation with Kustomize
 - Server patches for production configuration
 - App-of-apps pattern (platform-apps.yaml)
 - Crossplane application bootstrap
@@ -78,7 +78,7 @@ Git Commit → ArgoCD Detects → Syncs to Cluster → Crossplane Provisions →
 **Files**: 9 | **Lines**: 797
 
 **Deliverables**:
-- Crossplane v1.16.0 with composition functions
+- Crossplane v2.2.0 with composition functions
 - AWS provider (S3, RDS, EC2, ElastiCache)
 - GCP provider (Storage, SQL, Compute, Redis)
 - Azure provider (Storage, SQL, Network, Cache)

@@ -66,8 +66,8 @@ watch kubectl get providers
 Expected output:
 ```
 NAME                        INSTALLED   HEALTHY   PACKAGE                                          AGE
-provider-aws-s3            True        True      xpkg.upbound.io/upbound/provider-aws-s3:v1.2.0   1m
-provider-aws-rds           True        True      xpkg.upbound.io/upbound/provider-aws-rds:v1.2.0  1m
+provider-aws-s3            True        True      xpkg.upbound.io/upbound/provider-aws-s3:v2.5.1   1m
+provider-aws-rds           True        True      xpkg.upbound.io/upbound/provider-aws-rds:v2.5.1  1m
 ...
 ```
 
@@ -234,10 +234,10 @@ kubectl get provider provider-aws-s3 -o jsonpath='{.status.conditions}'
 
 ## Provider Versions
 
-Current versions (as of Oct 2025):
-- AWS Providers: v1.2.0
-- GCP Providers: v1.2.0
-- Azure Providers: v1.2.0
+Current versions (as of April 2026):
+- AWS Providers: v2.5.1
+- GCP Providers: v2.5.1
+- Azure Providers: v2.5.1
 
 ### Upgrading Providers
 

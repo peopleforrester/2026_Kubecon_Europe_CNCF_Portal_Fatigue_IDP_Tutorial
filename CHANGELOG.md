@@ -38,7 +38,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 **Core Platform**:
 - ArgoCD installation automation via `scripts/setup.sh`
-- Crossplane 1.16.0 installation with Helm
+- Crossplane 2.2.0 installation with Helm
 - AWS provider configuration (upbound/provider-aws v0.48.0)
 - Multi-environment support (dev, staging, production namespaces)
 

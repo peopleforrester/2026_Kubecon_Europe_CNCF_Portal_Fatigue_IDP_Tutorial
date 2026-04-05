@@ -10,7 +10,7 @@ metadata:
   annotations:
     kubecon.tutorial/description: "GCP Storage provider for object storage"
 spec:
-  package: xpkg.upbound.io/upbound/provider-gcp-storage:v1.2.0
+  package: xpkg.upbound.io/upbound/provider-gcp-storage:v2.5.1
   packagePullPolicy: IfNotPresent
   revisionActivationPolicy: Automatic
   revisionHistoryLimit: 1
@@ -24,7 +24,7 @@ metadata:
   annotations:
     kubecon.tutorial/description: "GCP SQL provider for Cloud SQL databases"
 spec:
-  package: xpkg.upbound.io/upbound/provider-gcp-sql:v1.2.0
+  package: xpkg.upbound.io/upbound/provider-gcp-sql:v2.5.1
   packagePullPolicy: IfNotPresent
   revisionActivationPolicy: Automatic
   revisionHistoryLimit: 1
@@ -38,7 +38,7 @@ metadata:
   annotations:
     kubecon.tutorial/description: "GCP Compute provider for VPC and networking"
 spec:
-  package: xpkg.upbound.io/upbound/provider-gcp-compute:v1.2.0
+  package: xpkg.upbound.io/upbound/provider-gcp-compute:v2.5.1
   packagePullPolicy: IfNotPresent
   revisionActivationPolicy: Automatic
   revisionHistoryLimit: 1
@@ -52,7 +52,7 @@ metadata:
   annotations:
     kubecon.tutorial/description: "GCP Redis provider for Memorystore"
 spec:
-  package: xpkg.upbound.io/upbound/provider-gcp-redis:v1.2.0
+  package: xpkg.upbound.io/upbound/provider-gcp-redis:v2.5.1
   packagePullPolicy: IfNotPresent
   revisionActivationPolicy: Automatic
   revisionHistoryLimit: 1

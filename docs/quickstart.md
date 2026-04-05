@@ -135,7 +135,7 @@ Continue with installation? [y/N] y
 ✓ Kubernetes cluster accessible
 ✓ Cluster has 3 node(s)
 
-ℹ Installing ArgoCD v2.11.0...
+ℹ Installing ArgoCD v3.3.6...
 ✓ Created namespace argocd
 ✓ ArgoCD installed successfully
 
@@ -144,7 +144,7 @@ ArgoCD Admin Credentials:
   Username: admin
   Password: abc123xyz789...
 
-ℹ Installing Crossplane 1.16.0...
+ℹ Installing Crossplane 2.2.0...
 ✓ Added Crossplane Helm repository
 ✓ Created namespace crossplane-system
 ✓ Crossplane installed successfully

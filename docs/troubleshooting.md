@@ -47,7 +47,7 @@ This document will provide comprehensive troubleshooting guidance based on patte
 ```
 
 ### Known Limitations
-- ArgoCD v2.11.0 specific quirks
+- ArgoCD v3.3.6 specific quirks
 - Crossplane provider compatibility
 - Cloud provider API rate limits
 - Kubernetes version requirements

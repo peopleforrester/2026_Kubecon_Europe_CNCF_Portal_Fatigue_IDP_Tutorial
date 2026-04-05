@@ -1,5 +1,5 @@
 # ABOUTME: ArgoCD installation using Kustomize with security-focused patches
-# ABOUTME: Uses ArgoCD v2.11.0 (latest stable as of Oct 2025, NOT v3.0 which is still RC)
+# ABOUTME: Uses ArgoCD v3.3.6 (latest stable as of April 2026)
 
 apiVersion: kustomize.config.k8s.io/v1beta1
 kind: Kustomization
@@ -7,9 +7,9 @@ kind: Kustomization
 namespace: argocd
 
 resources:
-  # ArgoCD v2.11.0 - CNCF Graduated project (Dec 2022)
+  # ArgoCD v3.3.6 - CNCF Graduated project
   # Using specific version for tutorial stability
-  - https://raw.githubusercontent.com/argoproj/argo-cd/v2.11.0/manifests/install.yaml
+  - https://raw.githubusercontent.com/argoproj/argo-cd/v3.3.6/manifests/install.yaml
 
 patchesStrategicMerge:
   # Customize ArgoCD server for tutorial access

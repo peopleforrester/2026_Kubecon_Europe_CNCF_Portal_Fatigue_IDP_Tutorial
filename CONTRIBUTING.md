@@ -46,8 +46,8 @@ What you expected to happen.
 **Environment**
 - Kubernetes version: [e.g. 1.28]
 - Cloud provider: [e.g. AWS]
-- Crossplane version: [e.g. 1.16.0]
-- ArgoCD version: [e.g. 2.11.0]
+- Crossplane version: [e.g. 2.2.0]
+- ArgoCD version: [e.g. 3.3.6]
 
 **Additional context**
 Any other context about the problem.
@@ -235,8 +235,8 @@ go install github.com/yannh/kubeconform/cmd/kubeconform@latest
 # Install Kyverno CLI (for policy testing)
 brew install kyverno  # macOS
 # Linux
-wget https://github.com/kyverno/kyverno/releases/download/v1.11.0/kyverno-cli_v1.11.0_linux_x86_64.tar.gz
-tar -xvf kyverno-cli_v1.11.0_linux_x86_64.tar.gz
+wget https://github.com/kyverno/kyverno/releases/download/v1.17.1/kyverno-cli_v1.17.1_linux_x86_64.tar.gz
+tar -xvf kyverno-cli_v1.17.1_linux_x86_64.tar.gz
 sudo mv kyverno /usr/local/bin/
 
 # Install ArgoCD CLI (for testing GitOps workflows)

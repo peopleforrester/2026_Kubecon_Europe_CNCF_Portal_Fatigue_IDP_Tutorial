@@ -43,7 +43,7 @@ prompt_plan.md
 **Branch**: phase-2-argocd
 **Files**: 8
 
-- ✅ ArgoCD v2.11.0 installation with Kustomize
+- ✅ ArgoCD v3.3.6 installation with Kustomize
 - ✅ App-of-apps pattern for platform bootstrapping
 - ✅ Multi-environment ApplicationSets
 - ✅ RBAC configuration for team access
@@ -67,7 +67,7 @@ argocd/README.md (comprehensive guide)
 **Branch**: phase-3-crossplane
 **Files**: 12
 
-- ✅ Crossplane v1.16.0 with composition functions enabled
+- ✅ Crossplane v2.2.0 with composition functions enabled
 - ✅ AWS, GCP, and Azure provider configurations
 - ✅ Granular Upbound providers (install only needed services)
 - ✅ Secure credential management templates
@@ -413,14 +413,14 @@ spec:
 - [x] Multi-environment directories
 
 ### Phase 2: GitOps (ArgoCD)
-- [x] ArgoCD v2.11.0 installation
+- [x] ArgoCD v3.3.6 installation
 - [x] App-of-apps pattern
 - [x] Multi-environment ApplicationSets
 - [x] RBAC configuration
 - [x] ArgoCD README
 
 ### Phase 3: Providers (Crossplane)
-- [x] Crossplane v1.16.0 installation
+- [x] Crossplane v2.2.0 installation
 - [x] Composition functions enabled
 - [x] AWS provider (granular)
 - [x] GCP provider (granular)

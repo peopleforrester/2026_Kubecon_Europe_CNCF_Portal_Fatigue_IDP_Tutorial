@@ -1,5 +1,5 @@
-# ABOUTME: Crossplane installation using Kustomize with composition functions enabled
-# ABOUTME: Uses Crossplane v1.16.0 (latest stable as of Oct 2025) - CNCF Incubating project
+# ABOUTME: Crossplane installation using Kustomize with composition functions
+# ABOUTME: Uses Crossplane v2.2.0 (latest stable as of April 2026) - CNCF Graduated project
 
 apiVersion: kustomize.config.k8s.io/v1beta1
 kind: Kustomization
@@ -7,28 +7,14 @@ kind: Kustomization
 namespace: crossplane-system
 
 resources:
-  # Crossplane v1.16.0 - CNCF Incubating project (Sep 2021)
-  # Graduation proposal submitted February 2024
-  - https://raw.githubusercontent.com/crossplane/crossplane/v1.16.0/cluster/crds/crossplane.yaml
-  - https://raw.githubusercontent.com/crossplane/crossplane/v1.16.0/cluster/deployment/deployment.yaml
-
-# Namespace for Crossplane system
-namespace: crossplane-system
+  # Crossplane v2.2.0 - CNCF Graduated project
+  # v2 requires Pipeline mode for compositions (native PnT removed)
+  - https://raw.githubusercontent.com/crossplane/crossplane/v2.2.0/cluster/crds/crossplane.yaml
+  - https://raw.githubusercontent.com/crossplane/crossplane/v2.2.0/cluster/deployment/deployment.yaml
 
 # Configuration patches for Crossplane deployment
 patchesStrategicMerge:
   - crossplane-deployment-patch.yaml
-
-# ConfigMap for Crossplane feature flags
-configMapGenerator:
-  - name: crossplane-config
-    literals:
-      # Enable Composition Functions (Python/Go functions for complex logic)
-      - enable-composition-functions=true
-      # Enable Environment Configs (environment-specific configuration)
-      - enable-environment-configs=true
-      # Enable alpha features for tutorial (use with caution in production)
-      - enable-alpha-features=false
 
 # Labels for resource tracking
 commonLabels:

@@ -10,7 +10,7 @@ metadata:
   annotations:
     kubecon.tutorial/description: "Azure Storage provider for blob storage"
 spec:
-  package: xpkg.upbound.io/upbound/provider-azure-storage:v1.2.0
+  package: xpkg.upbound.io/upbound/provider-azure-storage:v2.5.1
   packagePullPolicy: IfNotPresent
   revisionActivationPolicy: Automatic
   revisionHistoryLimit: 1
@@ -24,7 +24,7 @@ metadata:
   annotations:
     kubecon.tutorial/description: "Azure SQL provider for managed databases"
 spec:
-  package: xpkg.upbound.io/upbound/provider-azure-sql:v1.2.0
+  package: xpkg.upbound.io/upbound/provider-azure-sql:v2.5.1
   packagePullPolicy: IfNotPresent
   revisionActivationPolicy: Automatic
   revisionHistoryLimit: 1
@@ -38,7 +38,7 @@ metadata:
   annotations:
     kubecon.tutorial/description: "Azure Network provider for VNet and NSG"
 spec:
-  package: xpkg.upbound.io/upbound/provider-azure-network:v1.2.0
+  package: xpkg.upbound.io/upbound/provider-azure-network:v2.5.1
   packagePullPolicy: IfNotPresent
   revisionActivationPolicy: Automatic
   revisionHistoryLimit: 1
@@ -52,7 +52,7 @@ metadata:
   annotations:
     kubecon.tutorial/description: "Azure Cache provider for Redis"
 spec:
-  package: xpkg.upbound.io/upbound/provider-azure-cache:v1.2.0
+  package: xpkg.upbound.io/upbound/provider-azure-cache:v2.5.1
   packagePullPolicy: IfNotPresent
   revisionActivationPolicy: Automatic
   revisionHistoryLimit: 1

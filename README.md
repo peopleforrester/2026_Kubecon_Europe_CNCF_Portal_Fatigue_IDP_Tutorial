@@ -7,8 +7,8 @@
 [![PRs Welcome](https://img.shields.io/badge/PRs-welcome-brightgreen.svg)](CONTRIBUTING.md)
 [![Built with](https://img.shields.io/badge/Built%20with-GitOps-blueviolet)](https://opengitops.dev/)
 [![Kubernetes](https://img.shields.io/badge/Kubernetes-1.28+-blue)](https://kubernetes.io/)
-[![ArgoCD](https://img.shields.io/badge/ArgoCD-v2.11-blue)](https://argo-cd.readthedocs.io/)
-[![Crossplane](https://img.shields.io/badge/Crossplane-v1.16-blue)](https://www.crossplane.io/)
+[![ArgoCD](https://img.shields.io/badge/ArgoCD-v3.3-blue)](https://argo-cd.readthedocs.io/)
+[![Crossplane](https://img.shields.io/badge/Crossplane-v2.2-blue)](https://www.crossplane.io/)
 
 > **Defeat Portal Fatigue**: Build robust platform orchestration that works via GitOps and CLI before adding portal interfaces.
 
@@ -118,13 +118,13 @@ This repository contains a **complete 8-phase implementation** of a production-r
 - Multi-environment directory structure
 
 ### Phase 2: GitOps Layer (ArgoCD) ✅
-- ArgoCD v2.11.0 installation with Kustomize
+- ArgoCD v3.3.6 installation with Kustomize
 - App-of-apps pattern for platform bootstrapping
 - Multi-environment ApplicationSets (dev/staging/production)
 - RBAC configuration for team access
 
 ### Phase 3: Infrastructure Providers (Crossplane) ✅
-- Crossplane v1.16.0 with composition functions
+- Crossplane v2.2.0 with composition functions
 - AWS, GCP, and Azure provider configurations
 - Secure credential management templates
 - Provider setup documentation

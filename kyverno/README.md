@@ -57,7 +57,7 @@ spec:
 ### Deploy Kyverno
 
 ```bash
-# Install Kyverno v1.11.0
+# Install Kyverno v1.17.1
 kubectl apply -k kyverno/install/
 
 # Verify installation
