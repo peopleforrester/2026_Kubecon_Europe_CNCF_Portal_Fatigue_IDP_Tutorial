@@ -692,7 +692,7 @@ Regulated industries benefit most:
 
 **Need advice for your use case?**
 - 💬 Slack: #backend-first-idp on [CNCF Slack](https://slack.cncf.io)
-- 📧 Email: use-cases@backend-first-idp.io
+- 📧 GitHub Issues: https://github.com/peopleforrester/2026_Kubecon_Europe_CNCF_Portal_Fatigue_IDP_Tutorial/issues
 - 🗓️ Office Hours: First Tuesday, 10 AM ET
 
 ---
@@ -707,7 +707,7 @@ Regulated industries benefit most:
 3. Present at community office hours
 4. Get featured in newsletter
 
-**Contact**: stories@backend-first-idp.io
+**Contact**: https://github.com/peopleforrester/2026_Kubecon_Europe_CNCF_Portal_Fatigue_IDP_Tutorial/issues
 
 ---
 

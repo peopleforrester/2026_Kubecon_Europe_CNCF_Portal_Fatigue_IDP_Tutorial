@@ -27,7 +27,7 @@ spec:
         kind: SubnetGroup
         spec:
           forProvider:
-            region: us-west-2
+            region: eu-west-1
             description: "Subnet group for Redis cache"
 
       patches:
@@ -50,7 +50,7 @@ spec:
         kind: SecurityGroup
         spec:
           forProvider:
-            region: us-west-2
+            region: eu-west-1
             description: "Security group for Redis cache"
             vpcId: vpc-default
 
@@ -80,7 +80,7 @@ spec:
         kind: SecurityGroupRule
         spec:
           forProvider:
-            region: us-west-2
+            region: eu-west-1
             type: ingress
             fromPort: 6379
             toPort: 6379
@@ -108,7 +108,7 @@ spec:
         kind: ReplicationGroup
         spec:
           forProvider:
-            region: us-west-2
+            region: eu-west-1
             engine: redis
             engineVersion: "7.0"
             nodeType: cache.t3.micro

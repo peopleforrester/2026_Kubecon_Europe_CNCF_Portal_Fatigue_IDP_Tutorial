@@ -625,8 +625,8 @@ chmod +x cloud_sql_proxy
 
 **Issues with GCP setup?**
 - 💬 Slack: #backend-first-idp on [CNCF Slack](https://slack.cncf.io)
-- 🐛 GitHub Issues: [Report bug](https://github.com/[ORG]/backend-first-idp/issues)
-- 📧 Email: gcp-help@backend-first-idp.io
+- 🐛 GitHub Issues: [Report bug](https://github.com/peopleforrester/2026_Kubecon_Europe_CNCF_Portal_Fatigue_IDP_Tutorial/issues)
+- 📧 GitHub Issues: https://github.com/peopleforrester/2026_Kubecon_Europe_CNCF_Portal_Fatigue_IDP_Tutorial/issues
 
 **GCP-specific questions?**
 - GCP Support: https://console.cloud.google.com/support/

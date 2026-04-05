@@ -249,7 +249,7 @@ environments/production/my-app.yaml
 
 **Playlist**: [Community Showcases](https://youtube.com/playlist/placeholder) *(Coming soon)*
 
-**Submit your story**: Email community@backend-first-idp.io
+**Submit your story**: Open an issue at https://github.com/peopleforrester/2026_Kubecon_Europe_CNCF_Portal_Fatigue_IDP_Tutorial/issues
 
 ---
 
@@ -383,7 +383,7 @@ environments/production/my-app.yaml
 - ✅ High contrast terminal themes
 - ✅ Screen reader compatible (where applicable)
 
-**Community contributions**: We welcome subtitle translations! Contact community@backend-first-idp.io
+**Community contributions**: We welcome subtitle translations! Open an issue at https://github.com/peopleforrester/2026_Kubecon_Europe_CNCF_Portal_Fatigue_IDP_Tutorial/issues
 
 ---
 
@@ -416,9 +416,9 @@ environments/production/my-app.yaml
 
 **How to give feedback**:
 - **During video**: Comment on YouTube
-- **General feedback**: [GitHub Discussions](https://github.com/[ORG]/backend-first-idp/discussions)
-- **Issues/corrections**: [GitHub Issues](https://github.com/[ORG]/backend-first-idp/issues)
-- **Email**: video-feedback@backend-first-idp.io
+- **General feedback**: [GitHub Discussions](https://github.com/peopleforrester/2026_Kubecon_Europe_CNCF_Portal_Fatigue_IDP_Tutorial/discussions)
+- **Issues/corrections**: [GitHub Issues](https://github.com/peopleforrester/2026_Kubecon_Europe_CNCF_Portal_Fatigue_IDP_Tutorial/issues)
+- **GitHub Issues**: https://github.com/peopleforrester/2026_Kubecon_Europe_CNCF_Portal_Fatigue_IDP_Tutorial/issues
 
 ---
 
@@ -427,7 +427,7 @@ environments/production/my-app.yaml
 **Production**:
 - **Maintainers**: Core team members
 - **Editing**: Community volunteers
-- **Voiceover**: [Contributors list](https://github.com/[ORG]/backend-first-idp/graphs/contributors)
+- **Voiceover**: [Contributors list](https://github.com/peopleforrester/2026_Kubecon_Europe_CNCF_Portal_Fatigue_IDP_Tutorial/graphs/contributors)
 - **Music**: Creative Commons licensed tracks
 
 **Special thanks** to CNCF for conference recording support.
@@ -462,7 +462,7 @@ environments/production/my-app.yaml
 
 ---
 
-**Questions about videos?** Ask in [CNCF Slack #backend-first-idp](https://cloud-native.slack.com) or email video@backend-first-idp.io
+**Questions about videos?** Ask in [CNCF Slack #backend-first-idp](https://cloud-native.slack.com) or open an issue at https://github.com/peopleforrester/2026_Kubecon_Europe_CNCF_Portal_Fatigue_IDP_Tutorial/issues
 
 **Want to contribute videos?** See [CONTRIBUTING.md](/CONTRIBUTING.md) and reach out!
 

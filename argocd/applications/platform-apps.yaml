@@ -19,7 +19,7 @@ spec:
 
   # Source: This repository
   source:
-    repoURL: https://github.com/[YOUR-ORG]/backend-first-idp
+    repoURL: https://github.com/peopleforrester/2026_Kubecon_Europe_CNCF_Portal_Fatigue_IDP_Tutorial
     targetRevision: main
     path: argocd/applications
     directory:

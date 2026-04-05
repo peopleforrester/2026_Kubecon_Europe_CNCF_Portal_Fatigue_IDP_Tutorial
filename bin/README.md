@@ -217,14 +217,14 @@ platform connect redis my-cache --env=staging --format=json
 PostgreSQL Connection Details
 
 Connection:
-  Host:        my-db.abc123.us-west-2.rds.amazonaws.com
+  Host:        my-db.abc123.eu-west-1.rds.amazonaws.com
   Port:        5432
   Database:    postgres
   Username:    postgres
   Password:    ********
 
 Connection String:
-  postgresql://postgres:********@my-db.abc123.us-west-2.rds.amazonaws.com:5432/postgres
+  postgresql://postgres:********@my-db.abc123.eu-west-1.rds.amazonaws.com:5432/postgres
 
 Usage in Application:
   env:

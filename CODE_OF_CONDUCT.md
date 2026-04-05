@@ -15,7 +15,7 @@ This Code of Conduct applies within all project spaces, including GitHub issues,
 Project maintainers are responsible for clarifying and enforcing standards of acceptable behavior.
 
 Instances of unacceptable behavior may be reported to the project team at:
-- **Email**: conduct@backend-first-idp.io
+- **GitHub Issues**: https://github.com/peopleforrester/2026_Kubecon_Europe_CNCF_Portal_Fatigue_IDP_Tutorial/issues
 - **KubeCon Contact**: Tutorial session leaders
 
 All complaints will be reviewed and investigated promptly and fairly.

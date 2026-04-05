@@ -400,7 +400,7 @@ spec:
 
   # Provider
   provider: aws|gcp|azure
-  region: us-west-2
+  region: eu-west-1
 ```
 
 ### Auto-Wired Environment Variables
@@ -445,7 +445,7 @@ status:
   dependencies:
     database:
       ready: true
-      endpoint: my-app-db.abc123.us-west-2.rds.amazonaws.com
+      endpoint: my-app-db.abc123.eu-west-1.rds.amazonaws.com
     cache:
       ready: true
       endpoint: my-app-cache.abc123.cache.amazonaws.com

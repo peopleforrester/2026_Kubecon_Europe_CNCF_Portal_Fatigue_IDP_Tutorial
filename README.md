@@ -50,7 +50,7 @@ This repository provides the proven patterns that work.
 
 ```bash
 # 1. Clone the repository
-git clone https://github.com/[YOUR-ORG]/backend-first-idp.git
+git clone https://github.com/peopleforrester/2026_Kubecon_Europe_CNCF_Portal_Fatigue_IDP_Tutorial.git
 cd backend-first-idp
 
 # 2. Run setup script
@@ -287,7 +287,7 @@ We welcome contributions! This is an open-source demo repository for the CNCF co
 - **Bug Reports**: [Open an issue](../../issues)
 - **Feature Requests**: [Start a discussion](../../discussions)
 - **Pull Requests**: See [CONTRIBUTING.md](CONTRIBUTING.md) for guidelines
-- **Questions**: Join our [community Slack](link-to-slack)
+- **Questions**: Join our [community Slack](https://cloud-native.slack.com/channels/backend-first-idp)
 
 ### Adding New Compositions
 
@@ -338,7 +338,7 @@ Apache 2.0 is the standard license for CNCF projects and provides:
 
 - **Documentation**: [docs/](docs/)
 - **GitHub Issues**: [Report issues](../../issues)
-- **Community Slack**: [Join conversation](link-to-slack)
+- **Community Slack**: [Join conversation](https://cloud-native.slack.com/channels/backend-first-idp)
 - **Office Hours**: First Tuesday monthly, 10 AM ET
 - **KubeCon Tutorial**: Live Q&A during session
 

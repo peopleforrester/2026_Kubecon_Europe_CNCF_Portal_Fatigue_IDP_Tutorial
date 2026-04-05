@@ -41,7 +41,7 @@ spec:
 
     # AWS provider
     provider: aws
-    region: us-west-2
+    region: eu-west-1
 
   # Connection secret for applications
   writeConnectionSecretToRef:

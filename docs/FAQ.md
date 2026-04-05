@@ -286,12 +286,12 @@ bin/platform create postgres my-db --size=medium --env=dev --dry-run
 - 💬 **Slack**: `#backend-first-idp` on CNCF Slack
 - 🐛 **GitHub Issues**: Bug reports, feature requests
 - 💡 **GitHub Discussions**: Q&A, ideas, showcases
-- 📧 **Email**: support@backend-first-idp.io
+- 📧 **Email**: https://github.com/peopleforrester/2026_Kubecon_Europe_CNCF_Portal_Fatigue_IDP_Tutorial/issues
 - 📺 **Office Hours**: First Tuesday, YouTube Live
 
 **Emergency during tutorial**:
 - DM session leader on CNCF Slack
-- Email: tutorial@backend-first-idp.io
+- GitHub Issues: https://github.com/peopleforrester/2026_Kubecon_Europe_CNCF_Portal_Fatigue_IDP_Tutorial/issues
 
 ### Is there a community/Slack?
 
@@ -538,8 +538,8 @@ spec:
 
 **Ask the community**:
 - 💬 Slack: `#backend-first-idp` on CNCF Slack
-- 💡 GitHub Discussions: https://github.com/[ORG]/backend-first-idp/discussions
-- 📧 Email: support@backend-first-idp.io
+- 💡 GitHub Discussions: https://github.com/peopleforrester/2026_Kubecon_Europe_CNCF_Portal_Fatigue_IDP_Tutorial/discussions
+- 📧 Email: https://github.com/peopleforrester/2026_Kubecon_Europe_CNCF_Portal_Fatigue_IDP_Tutorial/issues
 
 **Update this FAQ**:
 - Found a mistake? Open a PR!
@@ -548,4 +548,4 @@ spec:
 
 ---
 
-**Last Updated**: 2026-01-15 | **Contributors**: [List](https://github.com/[ORG]/backend-first-idp/graphs/contributors)
+**Last Updated**: 2026-01-15 | **Contributors**: [List](https://github.com/peopleforrester/2026_Kubecon_Europe_CNCF_Portal_Fatigue_IDP_Tutorial/graphs/contributors)

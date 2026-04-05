@@ -41,7 +41,7 @@ spec:
 
     # AWS provider (could be 'gcp' or 'azure')
     provider: aws
-    region: us-west-2
+    region: eu-west-1
 
   # Connection secret will be created with this name
   # Applications can reference this secret to connect

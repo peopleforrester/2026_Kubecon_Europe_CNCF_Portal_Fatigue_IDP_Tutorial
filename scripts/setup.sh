@@ -377,9 +377,9 @@ print_summary() {
     echo ""
 
     echo -e "${BLUE}Support:${NC}"
-    echo "  • GitHub Issues: https://github.com/[ORG]/backend-first-idp/issues"
+    echo "  • GitHub Issues: https://github.com/peopleforrester/2026_Kubecon_Europe_CNCF_Portal_Fatigue_IDP_Tutorial/issues"
     echo "  • Slack:         #backend-first-idp on CNCF Slack"
-    echo "  • Email:         support@backend-first-idp.io"
+    echo "  • Discussions:   https://github.com/peopleforrester/2026_Kubecon_Europe_CNCF_Portal_Fatigue_IDP_Tutorial/discussions"
     echo ""
 }
 

@@ -127,7 +127,7 @@ spec:
                   region:
                     type: string
                     description: "Cloud provider region"
-                    default: us-west-2
+                    default: eu-west-1
 
                 # No required fields - all have sensible defaults
                 # This makes it easy for developers to get started

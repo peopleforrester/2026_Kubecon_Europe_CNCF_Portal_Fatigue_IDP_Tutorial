@@ -13,7 +13,7 @@ spec:
   # Git directory generator - scans environments/* directories
   generators:
   - git:
-      repoURL: https://github.com/[YOUR-ORG]/backend-first-idp
+      repoURL: https://github.com/peopleforrester/2026_Kubecon_Europe_CNCF_Portal_Fatigue_IDP_Tutorial
       revision: main
       directories:
       - path: environments/*
@@ -40,7 +40,7 @@ spec:
 
       # Source: Environment-specific directory
       source:
-        repoURL: https://github.com/[YOUR-ORG]/backend-first-idp
+        repoURL: https://github.com/peopleforrester/2026_Kubecon_Europe_CNCF_Portal_Fatigue_IDP_Tutorial
         targetRevision: main
         path: '{{path}}'
 

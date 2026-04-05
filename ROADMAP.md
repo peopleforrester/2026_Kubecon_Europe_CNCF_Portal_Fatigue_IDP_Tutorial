@@ -310,7 +310,7 @@ This document outlines the planned development phases for the Backend-First IDP 
 7. **MySQL support** (36 votes) - ✅ Planned Q2 2026
 8. **DR automation** (29 votes) - ✅ Planned Q4 2026
 
-**Vote on features**: [GitHub Discussions](https://github.com/[ORG]/backend-first-idp/discussions/categories/feature-requests)
+**Vote on features**: [GitHub Discussions](https://github.com/peopleforrester/2026_Kubecon_Europe_CNCF_Portal_Fatigue_IDP_Tutorial/discussions/categories/feature-requests)
 
 ---
 
@@ -411,7 +411,7 @@ Oct 2026: v1alpha1 removed, v1beta1 only
 
 **Influence the roadmap**:
 
-1. **Vote on features**: [GitHub Discussions](https://github.com/[ORG]/backend-first-idp/discussions/categories/feature-requests)
+1. **Vote on features**: [GitHub Discussions](https://github.com/peopleforrester/2026_Kubecon_Europe_CNCF_Portal_Fatigue_IDP_Tutorial/discussions/categories/feature-requests)
 2. **Submit ideas**: Open discussion with "Feature Request" template
 3. **Join planning**: Monthly community calls (announced in Slack)
 4. **Sponsor features**: Organizations can sponsor specific features
@@ -439,7 +439,7 @@ Oct 2026: v1alpha1 removed, v1beta1 only
 - Support SLA
 - Custom integrations
 
-**Interested?** Email: sponsorship@backend-first-idp.io
+**Interested?** Open an issue: https://github.com/peopleforrester/2026_Kubecon_Europe_CNCF_Portal_Fatigue_IDP_Tutorial/issues
 
 ---
 
@@ -448,7 +448,7 @@ Oct 2026: v1alpha1 removed, v1beta1 only
 **Ask us**:
 - 💬 Slack: #backend-first-idp on [CNCF Slack](https://slack.cncf.io)
 - 💡 GitHub Discussions: Roadmap category
-- 📧 Email: roadmap@backend-first-idp.io
+- 📧 GitHub Issues: https://github.com/peopleforrester/2026_Kubecon_Europe_CNCF_Portal_Fatigue_IDP_Tutorial/issues
 - 🗓️ Office Hours: First Tuesday, 10 AM ET
 
 **Watch for updates**:

@@ -95,7 +95,7 @@ spec:
 
   # Cloud configuration
   provider: aws
-  region: us-west-2
+  region: eu-west-1
 
 ---
 # What this creates automatically:

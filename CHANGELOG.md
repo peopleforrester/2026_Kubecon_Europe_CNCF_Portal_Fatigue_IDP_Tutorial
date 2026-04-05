@@ -375,7 +375,7 @@ When releasing:
 **Watch releases**:
 - GitHub: Watch repository → Custom → Releases
 - Slack: Join #backend-first-idp channel
-- RSS: https://github.com/[ORG]/backend-first-idp/releases.atom
+- RSS: https://github.com/peopleforrester/2026_Kubecon_Europe_CNCF_Portal_Fatigue_IDP_Tutorial/releases.atom
 - Email: Subscribe to mailing list
 
 **Release notifications include**:
@@ -393,17 +393,17 @@ When releasing:
 
 ### Decision: Semantic Versioning
 - **Date**: 2025-12-15
-- **Discussion**: [GitHub Discussion #12](https://github.com/[ORG]/backend-first-idp/discussions/12)
+- **Discussion**: [GitHub Discussion #12](https://github.com/peopleforrester/2026_Kubecon_Europe_CNCF_Portal_Fatigue_IDP_Tutorial/discussions/12)
 - **Decision**: Adopt SemVer for clear versioning
 
 ### Decision: API Version Strategy
 - **Date**: 2025-12-20
-- **Discussion**: [GitHub Discussion #15](https://github.com/[ORG]/backend-first-idp/discussions/15)
+- **Discussion**: [GitHub Discussion #15](https://github.com/peopleforrester/2026_Kubecon_Europe_CNCF_Portal_Fatigue_IDP_Tutorial/discussions/15)
 - **Decision**: v1alpha1 → v1beta1 → v1 progression
 
 ### Decision: Quarterly Release Cadence
 - **Date**: 2026-01-10
-- **Discussion**: [GitHub Discussion #18](https://github.com/[ORG]/backend-first-idp/discussions/18)
+- **Discussion**: [GitHub Discussion #18](https://github.com/peopleforrester/2026_Kubecon_Europe_CNCF_Portal_Fatigue_IDP_Tutorial/discussions/18)
 - **Decision**: Major releases quarterly, minor monthly, patch as-needed
 
 ---
@@ -413,7 +413,7 @@ When releasing:
 **Ask us**:
 - 💬 Slack: #backend-first-idp on [CNCF Slack](https://slack.cncf.io)
 - 💡 GitHub Discussions: Q&A category
-- 📧 Email: changelog@backend-first-idp.io
+- 📧 GitHub Issues: https://github.com/peopleforrester/2026_Kubecon_Europe_CNCF_Portal_Fatigue_IDP_Tutorial/issues
 
 **Contribute**:
 - Include changelog entries in your PRs
@@ -424,5 +424,5 @@ When releasing:
 
 **Last Updated**: 2026-01-15
 
-[Unreleased]: https://github.com/[ORG]/backend-first-idp/compare/v0.1.0...HEAD
-[0.1.0]: https://github.com/[ORG]/backend-first-idp/releases/tag/v0.1.0
+[Unreleased]: https://github.com/peopleforrester/2026_Kubecon_Europe_CNCF_Portal_Fatigue_IDP_Tutorial/compare/v0.1.0...HEAD
+[0.1.0]: https://github.com/peopleforrester/2026_Kubecon_Europe_CNCF_Portal_Fatigue_IDP_Tutorial/releases/tag/v0.1.0

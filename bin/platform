@@ -90,7 +90,7 @@ ${CYAN}Global Options:${NC}
 ${CYAN}Learn More:${NC}
   Documentation: docs/
   Examples: examples/
-  GitHub: github.com/[YOUR-ORG]/backend-first-idp
+  GitHub: github.com/peopleforrester/2026_Kubecon_Europe_CNCF_Portal_Fatigue_IDP_Tutorial
 
 EOF
 }

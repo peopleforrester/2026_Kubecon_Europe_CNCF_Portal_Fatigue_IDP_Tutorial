@@ -582,8 +582,8 @@ spec:
 ## 🔗 Quick Links
 
 ### Repository
-- **GitHub URL**: https://github.com/[YOUR-ORG]/backend-first-idp
-- **Clone Command**: `git clone https://github.com/[YOUR-ORG]/backend-first-idp.git`
+- **GitHub URL**: https://github.com/peopleforrester/2026_Kubecon_Europe_CNCF_Portal_Fatigue_IDP_Tutorial
+- **Clone Command**: `git clone https://github.com/peopleforrester/2026_Kubecon_Europe_CNCF_Portal_Fatigue_IDP_Tutorial.git`
 
 ### Documentation
 - [README.md](README.md) - Project overview

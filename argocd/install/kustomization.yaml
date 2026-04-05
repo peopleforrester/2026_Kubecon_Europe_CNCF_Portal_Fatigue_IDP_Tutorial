@@ -27,4 +27,4 @@ commonLabels:
 commonAnnotations:
   kubecon.tutorial/phase: "1-infrastructure-control-plane"
   kubecon.tutorial/component: "gitops-orchestration"
-  documentation: "https://github.com/[YOUR-ORG]/backend-first-idp"
+  documentation: "https://github.com/peopleforrester/2026_Kubecon_Europe_CNCF_Portal_Fatigue_IDP_Tutorial"

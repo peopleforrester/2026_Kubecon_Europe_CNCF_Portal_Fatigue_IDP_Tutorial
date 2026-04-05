@@ -30,7 +30,7 @@ spec:
         kind: SubnetGroup
         spec:
           forProvider:
-            region: us-west-2
+            region: eu-west-1
             description: "Subnet group for PostgreSQL database"
             subnetIdRefs:
               - name: subnet-a
@@ -58,7 +58,7 @@ spec:
         kind: SecurityGroup
         spec:
           forProvider:
-            region: us-west-2
+            region: eu-west-1
             description: "Security group for PostgreSQL database"
             vpcId: vpc-default
 
@@ -88,7 +88,7 @@ spec:
         kind: SecurityGroupRule
         spec:
           forProvider:
-            region: us-west-2
+            region: eu-west-1
             type: ingress
             fromPort: 5432
             toPort: 5432
@@ -116,7 +116,7 @@ spec:
         kind: Instance
         spec:
           forProvider:
-            region: us-west-2
+            region: eu-west-1
             engine: postgres
             engineVersion: "15.3"
             instanceClass: db.t3.micro

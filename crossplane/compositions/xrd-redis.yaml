@@ -136,7 +136,7 @@ spec:
                   region:
                     type: string
                     description: "Cloud region"
-                    default: us-west-2
+                    default: eu-west-1
 
           status:
             type: object

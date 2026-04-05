@@ -149,7 +149,7 @@ Now install ArgoCD + Crossplane on your local cluster:
 
 ```bash
 # Clone repo
-git clone https://github.com/[ORG]/backend-first-idp.git
+git clone https://github.com/peopleforrester/2026_Kubecon_Europe_CNCF_Portal_Fatigue_IDP_Tutorial.git
 cd backend-first-idp
 ```
 
@@ -710,8 +710,8 @@ docker system df
 
 **Issues with local setup?**
 - 💬 Slack: #backend-first-idp on [CNCF Slack](https://slack.cncf.io)
-- 🐛 GitHub Issues: [Report bug](https://github.com/[ORG]/backend-first-idp/issues)
-- 📧 Email: local-help@backend-first-idp.io
+- 🐛 GitHub Issues: [Report bug](https://github.com/peopleforrester/2026_Kubecon_Europe_CNCF_Portal_Fatigue_IDP_Tutorial/issues)
+- 📧 GitHub Issues: https://github.com/peopleforrester/2026_Kubecon_Europe_CNCF_Portal_Fatigue_IDP_Tutorial/issues
 
 **KIND-specific questions?**
 - KIND Docs: https://kind.sigs.k8s.io/docs/user/quick-start/

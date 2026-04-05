@@ -691,8 +691,8 @@ spec:
 
 **Issues with Azure setup?**
 - 💬 Slack: #backend-first-idp on [CNCF Slack](https://slack.cncf.io)
-- 🐛 GitHub Issues: [Report bug](https://github.com/[ORG]/backend-first-idp/issues)
-- 📧 Email: azure-help@backend-first-idp.io
+- 🐛 GitHub Issues: [Report bug](https://github.com/peopleforrester/2026_Kubecon_Europe_CNCF_Portal_Fatigue_IDP_Tutorial/issues)
+- 📧 GitHub Issues: https://github.com/peopleforrester/2026_Kubecon_Europe_CNCF_Portal_Fatigue_IDP_Tutorial/issues
 
 **Azure-specific questions?**
 - Azure Support: https://portal.azure.com/#blade/Microsoft_Azure_Support/HelpAndSupportBlade

@@ -115,7 +115,7 @@ spec:
 | **large** | db.t3.xlarge | 4 | 16 GB | $640 |
 | **xlarge** | db.m5.2xlarge | 8 | 32 GB | $1280 |
 
-*Prices based on us-west-2, on-demand, approximate as of Jan 2026*
+*Prices based on eu-west-1, on-demand, approximate as of Jan 2026*
 
 ### Version Support
 
@@ -901,8 +901,8 @@ When APIs are deprecated:
 **API questions?**
 - 💬 Slack: #backend-first-idp on [CNCF Slack](https://slack.cncf.io)
 - 📖 Examples: `/examples/` directory
-- 🐛 Issues: [GitHub Issues](https://github.com/[ORG]/backend-first-idp/issues)
-- 📧 Email: api-help@backend-first-idp.io
+- 🐛 Issues: [GitHub Issues](https://github.com/peopleforrester/2026_Kubecon_Europe_CNCF_Portal_Fatigue_IDP_Tutorial/issues)
+- 📧 GitHub Issues: https://github.com/peopleforrester/2026_Kubecon_Europe_CNCF_Portal_Fatigue_IDP_Tutorial/issues
 
 **Request new APIs**:
 - Open GitHub Issue with "API Request" label

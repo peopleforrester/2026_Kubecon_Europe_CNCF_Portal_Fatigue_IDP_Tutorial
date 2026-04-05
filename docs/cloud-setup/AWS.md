@@ -295,7 +295,7 @@ Now you're ready to install the platform:
 
 ```bash
 # Clone repository (if not already done)
-git clone https://github.com/[ORG]/backend-first-idp.git
+git clone https://github.com/peopleforrester/2026_Kubecon_Europe_CNCF_Portal_Fatigue_IDP_Tutorial.git
 cd backend-first-idp
 
 # Export AWS credentials (from Step 1.2)
@@ -660,8 +660,8 @@ kubectl delete postgresql test-aws-setup -n dev
 
 **Issues with AWS setup?**
 - 💬 Slack: #backend-first-idp on [CNCF Slack](https://slack.cncf.io)
-- 🐛 GitHub Issues: [Report bug](https://github.com/[ORG]/backend-first-idp/issues)
-- 📧 Email: aws-help@backend-first-idp.io
+- 🐛 GitHub Issues: [Report bug](https://github.com/peopleforrester/2026_Kubecon_Europe_CNCF_Portal_Fatigue_IDP_Tutorial/issues)
+- 📧 GitHub Issues: https://github.com/peopleforrester/2026_Kubecon_Europe_CNCF_Portal_Fatigue_IDP_Tutorial/issues
 
 **AWS-specific questions?**
 - AWS Support: https://console.aws.amazon.com/support/

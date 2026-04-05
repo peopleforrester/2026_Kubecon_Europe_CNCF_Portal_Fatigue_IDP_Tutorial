@@ -67,7 +67,7 @@ See: [AWS Setup Guide](/docs/cloud-setup/AWS.md)
 
 ```bash
 # Clone the repository
-git clone https://github.com/[ORG]/backend-first-idp.git
+git clone https://github.com/peopleforrester/2026_Kubecon_Europe_CNCF_Portal_Fatigue_IDP_Tutorial.git
 cd backend-first-idp
 
 # Verify you're in the right place
@@ -271,7 +271,7 @@ kubectl get secret my-first-db-connection -n dev -o yaml
 # Decode to see actual values
 kubectl get secret my-first-db-connection -n dev \
   -o jsonpath='{.data.endpoint}' | base64 -d
-# Output: my-first-db.xxxx.us-west-2.rds.amazonaws.com
+# Output: my-first-db.xxxx.eu-west-1.rds.amazonaws.com
 ```
 
 **Secret contains**:

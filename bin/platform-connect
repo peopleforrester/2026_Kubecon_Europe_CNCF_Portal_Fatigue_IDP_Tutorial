@@ -342,7 +342,7 @@ show_s3_connection() {
     local export_vars="$5"
 
     local bucket=$(kubectl get secret "$secret" -n "$env" -o jsonpath='{.data.bucket-name}' | base64 -d 2>/dev/null || echo "")
-    local region=$(kubectl get secret "$secret" -n "$env" -o jsonpath='{.data.region}' | base64 -d 2>/dev/null || echo "us-west-2")
+    local region=$(kubectl get secret "$secret" -n "$env" -o jsonpath='{.data.region}' | base64 -d 2>/dev/null || echo "eu-west-1")
     local endpoint=$(kubectl get secret "$secret" -n "$env" -o jsonpath='{.data.endpoint}' | base64 -d 2>/dev/null || echo "s3.${region}.amazonaws.com")
 
     case "$format" in

@@ -27,7 +27,7 @@ spec:
         kind: Bucket
         spec:
           forProvider:
-            region: us-west-2
+            region: eu-west-1
             forceDestroy: true  # For tutorial - allows deletion with objects
 
       patches:
@@ -59,7 +59,7 @@ spec:
         kind: BucketVersioningV2
         spec:
           forProvider:
-            region: us-west-2
+            region: eu-west-1
             bucketSelector:
               matchControllerRef: true
             versioningConfiguration:
@@ -87,7 +87,7 @@ spec:
         kind: BucketServerSideEncryptionConfigurationV2
         spec:
           forProvider:
-            region: us-west-2
+            region: eu-west-1
             bucketSelector:
               matchControllerRef: true
             rule:
@@ -110,7 +110,7 @@ spec:
         kind: BucketPublicAccessBlock
         spec:
           forProvider:
-            region: us-west-2
+            region: eu-west-1
             bucketSelector:
               matchControllerRef: true
             blockPublicAcls: true
@@ -147,7 +147,7 @@ spec:
         kind: BucketLifecycleConfigurationV2
         spec:
           forProvider:
-            region: us-west-2
+            region: eu-west-1
             bucketSelector:
               matchControllerRef: true
             rule:
@@ -193,7 +193,7 @@ spec:
         kind: BucketPolicy
         spec:
           forProvider:
-            region: us-west-2
+            region: eu-west-1
             bucketSelector:
               matchControllerRef: true
             policy: |

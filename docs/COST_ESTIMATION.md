@@ -608,7 +608,7 @@ A: Backups included in RDS/Cloud SQL pricing. DR cluster is additional (recommen
 
 **Questions about costs?**
 - 💬 Slack: #backend-first-idp on [CNCF Slack](https://slack.cncf.io)
-- 📧 Email: cost-help@backend-first-idp.io
+- 📧 GitHub Issues: https://github.com/peopleforrester/2026_Kubecon_Europe_CNCF_Portal_Fatigue_IDP_Tutorial/issues
 - 🗓️ Office Hours: First Tuesday, 10 AM ET
 
 ---

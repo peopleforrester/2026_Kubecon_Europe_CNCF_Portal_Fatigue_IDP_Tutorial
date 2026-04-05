@@ -888,7 +888,7 @@ kubectl get postgresql customer-db -n production
 **Need help migrating?**
 
 - 💬 **Slack**: #backend-first-idp on [CNCF Slack](https://slack.cncf.io)
-- 📧 **Email**: migration-help@backend-first-idp.io
+- 📧 **GitHub Issues**: https://github.com/peopleforrester/2026_Kubecon_Europe_CNCF_Portal_Fatigue_IDP_Tutorial/issues
 - 🗓️ **Office Hours**: First Tuesday, 10 AM ET
 - 📖 **Docs**: [FAQ](/docs/FAQ.md), [Comparison](/COMPARISON.md)
 
