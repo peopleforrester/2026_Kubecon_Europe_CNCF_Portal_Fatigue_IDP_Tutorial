@@ -284,21 +284,21 @@ aws_secret_access_key = ${aws_secret_key}" \
 
     log_success "Created AWS credentials secret"
 
-    # Install AWS provider
-    log_info "Installing AWS provider..."
-    kubectl apply -f "${REPO_ROOT}/crossplane/providers/provider-aws.yaml"
+    # Install AWS providers and ProviderConfig (both are in aws-provider.yaml)
+    log_info "Installing AWS providers..."
+    kubectl apply -f "${REPO_ROOT}/crossplane/providers/aws-provider.yaml"
 
-    # Wait for provider to be installed
-    log_info "Waiting for AWS provider to be ready..."
+    # Wait for providers to be installed
+    log_info "Waiting for AWS providers to be ready..."
     sleep 10
     kubectl wait --for=condition=Healthy \
-        provider/provider-aws \
+        provider/provider-aws-s3 \
+        provider/provider-aws-rds \
+        provider/provider-aws-ec2 \
+        provider/provider-aws-elasticache \
         --timeout=300s || log_warn "Provider health check timed out (this is normal on first install)"
 
-    # Apply provider configuration
-    kubectl apply -f "${REPO_ROOT}/crossplane/providers/aws-provider-config.yaml"
-
-    log_success "AWS provider configured successfully"
+    log_success "AWS providers configured successfully"
 }
 
 #######################################
@@ -371,7 +371,7 @@ print_summary() {
 
     echo -e "${BLUE}Documentation:${NC}"
     echo "  • Quick Start:  ${REPO_ROOT}/docs/quickstart.md"
-    echo "  • Tutorial:     ${REPO_ROOT}/TUTORIAL.md"
+    echo "  • Tutorial:     ${REPO_ROOT}/docs/quickstart.md"
     echo "  • FAQ:          ${REPO_ROOT}/docs/FAQ.md"
     echo "  • API Reference: ${REPO_ROOT}/docs/API_REFERENCE.md"
     echo ""
