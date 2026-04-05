@@ -1,0 +1,55 @@
+# ABOUTME: CI pipeline for Backend-First IDP tutorial
+# ABOUTME: Runs shellcheck, unit tests, and YAML validation on PRs and pushes
+
+name: CI
+
+on:
+  push:
+    branches: [main, staging]
+  pull_request:
+    branches: [main]
+
+jobs:
+  shellcheck:
+    name: ShellCheck
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - name: Install shellcheck
+        run: sudo apt-get install -y shellcheck
+      - name: Run shellcheck on CLI scripts
+        run: |
+          shellcheck bin/platform bin/platform-create bin/platform-delete \
+            bin/platform-list bin/platform-status bin/platform-cost \
+            bin/platform-validate bin/platform-connect bin/platform-promote \
+            bin/platform-common.sh bin/platform-validation.sh \
+            scripts/setup.sh
+
+  unit-tests:
+    name: Unit Tests
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - name: Run unit tests
+        run: bash tests/unit/cli/test_input_validation.sh
+
+  yaml-lint:
+    name: YAML Lint
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - name: Install yamllint
+        run: pip install yamllint
+      - name: Lint Kubernetes manifests
+        run: |
+          yamllint -d '{extends: relaxed, rules: {line-length: {max: 150}}}' \
+            argocd/applications/*.yaml \
+            argocd/applicationsets/*.yaml \
+            crossplane/compositions/*.yaml \
+            crossplane/providers/aws-provider.yaml \
+            crossplane/providers/gcp-provider.yaml \
+            crossplane/providers/azure-provider.yaml \
+            kyverno/policies/*.yaml \
+            environments/dev/*.yaml \
+            environments/staging/*.yaml \
+            environments/production/*.yaml

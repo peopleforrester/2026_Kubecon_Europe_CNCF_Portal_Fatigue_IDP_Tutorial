@@ -33,6 +33,8 @@ spec:
     namespace: argocd
 
   # Sync policy: Automated for tutorial
+  # WARNING: In production, set prune: false and selfHeal: false
+  # to prevent accidental resource deletion. Use manual sync instead.
   syncPolicy:
     automated:
       # Prune resources when removed from Git

@@ -4,6 +4,23 @@
 
 set -euo pipefail
 
+# Cleanup handler for partial installations
+cleanup() {
+    local exit_code=$?
+    if [[ $exit_code -ne 0 ]]; then
+        echo ""
+        echo -e "${RED:-}Installation failed at step: ${CURRENT_STEP:-unknown}${NC:-}"
+        echo ""
+        echo "To resume, re-run the script. It will skip already-installed components."
+        echo "To clean up a partial installation:"
+        echo "  kubectl delete namespace argocd crossplane-system 2>/dev/null || true"
+        echo ""
+    fi
+}
+trap cleanup EXIT
+
+CURRENT_STEP="initialization"
+
 # Colors for output
 RED='\033[0;31m'
 GREEN='\033[0;32m'
@@ -410,12 +427,18 @@ main() {
     echo ""
 
     # Run installation steps
+    CURRENT_STEP="preflight-checks"
     preflight_checks
+    CURRENT_STEP="argocd-installation"
     install_argocd
     get_argocd_password
+    CURRENT_STEP="crossplane-installation"
     install_crossplane
+    CURRENT_STEP="cloud-provider-configuration"
     configure_cloud_provider
+    CURRENT_STEP="platform-apps"
     configure_platform_apps
+    CURRENT_STEP="complete"
     print_summary
 }
 
